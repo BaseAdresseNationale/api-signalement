@@ -1,0 +1,17 @@
+import { Prop } from '@nestjs/mongoose';
+import { ApiProperty } from '@nestjs/swagger';
+import { SchemaTypes } from 'mongoose';
+
+export class Author {
+  @ApiProperty({ required: false, nullable: true })
+  @Prop({ type: SchemaTypes.String })
+  firstName?: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  @Prop({ type: SchemaTypes.String })
+  lastName?: string;
+
+  @ApiProperty({ required: true, nullable: false })
+  @Prop({ type: SchemaTypes.String })
+  email: string;
+}
