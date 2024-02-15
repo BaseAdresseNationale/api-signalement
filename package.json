@@ -17,7 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "docker:build": "docker build -t api-signalement .",
+    "docker:run": "docker run -p 5005:5005 api-signalement",
+    "docker:push": "docker tag api-signalement rg.fr-par.scw.cloud/tmp-poc/api-signalement:latest && docker push rg.fr-par.scw.cloud/tmp-poc/api-signalement:latest"
   },
   "dependencies": {
     "@ban-team/validateur-bal": "^2.17.0",

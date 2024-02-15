@@ -9,8 +9,10 @@ import { SignalementModule } from './modules/signalement/signalement.module';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
-        uri: config.get('MONGODB_URL'),
-        dbName: config.get('MONGODB_DBNAME'),
+        uri: config.get('MONGODB_URI'),
+        tls: true,
+        tlsCAFile: `${__dirname}/../${config.get('MONGODB_CERTIFICATE')}`,
+        authMechanism: 'PLAIN',
       }),
       inject: [ConfigService],
     }),
