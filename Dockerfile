@@ -17,4 +17,4 @@ COPY . .
 RUN yarn build
 
 # Start the server using the production build
-CMD [ "yarn", "start" ]
+CMD [ "yarn", "start:prod" ]
