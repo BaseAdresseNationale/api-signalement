@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsNotEmptyObject,
   IsObject,
+  IsOptional,
   Validate,
   ValidateNested,
 } from 'class-validator';
@@ -16,12 +17,14 @@ import { SignalementTypeEnum } from './schemas/signalement.schema';
 
 class AuthorDTO {
   @ApiProperty({ required: false, nullable: true })
-  firstName: string;
+  @IsOptional()
+  firstName?: string;
 
   @ApiProperty({ required: false, nullable: true })
-  lastName: string;
+  @IsOptional()
+  lastName?: string;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: false, nullable: true })
   @IsEmail()
   email: string;
 }
