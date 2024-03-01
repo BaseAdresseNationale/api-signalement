@@ -8,12 +8,49 @@ export enum ExistingLocationTypeEnum {
   TOPONYME = 'TOPONYME',
 }
 
-export class ExistingLocation {
+export abstract class ExistingLocation {
   @ApiProperty({ required: true, nullable: false })
   @Prop({ enum: ExistingLocationTypeEnum })
   type: ExistingLocationTypeEnum;
+}
+
+export class ExistingVoie extends ExistingLocation {
+  constructor() {
+    super();
+    this.type = ExistingLocationTypeEnum.VOIE;
+  }
 
   @ApiProperty({ required: true, nullable: false })
   @Prop({ type: SchemaTypes.String })
-  label: string;
+  nom: string;
+}
+
+export class ExistingToponyme extends ExistingLocation {
+  constructor() {
+    super();
+    this.type = ExistingLocationTypeEnum.TOPONYME;
+  }
+
+  @ApiProperty({ required: true, nullable: false })
+  @Prop({ type: SchemaTypes.String })
+  nom: string;
+}
+
+export class ExistingNumero extends ExistingLocation {
+  constructor() {
+    super();
+    this.type = ExistingLocationTypeEnum.NUMERO;
+  }
+
+  @ApiProperty({ required: true, nullable: false })
+  @Prop({ type: SchemaTypes.Number })
+  numero: number;
+
+  @ApiProperty({ required: true, nullable: false })
+  @Prop({ type: SchemaTypes.String })
+  suffixe: string;
+
+  @ApiProperty({ required: true, nullable: false })
+  @Prop({ type: ExistingLocation })
+  toponyme: ExistingVoie | ExistingToponyme;
 }

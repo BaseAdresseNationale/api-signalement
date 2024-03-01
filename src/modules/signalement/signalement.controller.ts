@@ -4,13 +4,14 @@ import {
   Get,
   HttpStatus,
   Post,
+  Put,
   Req,
   Res,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SignalementService } from './signalement.service';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { CreateSignalementDTO } from './signalement.dto';
+import { CreateSignalementDTO, UpdateSignalementDTO } from './signalement.dto';
 import { Signalement } from './schemas/signalement.schema';
 
 @Controller('signalements')
@@ -27,7 +28,10 @@ export class SignalementController {
     status: HttpStatus.OK,
     type: Array<Signalement>,
   })
-  async findOneBaseLocale(@Req() req: Request, @Res() res: Response) {
+  async getSignalementsByCodeCommune(
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     const { codeCommune } = req.params;
     const signalements =
       await this.signalementService.getByCodeCommune(codeCommune);
@@ -39,11 +43,11 @@ export class SignalementController {
   @Post('')
   @ApiOperation({
     summary: 'Create a new signalement',
-    operationId: 'createBaseLocale',
+    operationId: 'createSignalement',
   })
   @ApiBody({ type: CreateSignalementDTO, required: true })
   @ApiResponse({ status: HttpStatus.OK, type: Signalement })
-  async createBaseLocale(
+  async createSignalement(
     @Req() req: Request,
     @Body() createSignalementDTO: CreateSignalementDTO,
     @Res() res: Response,
@@ -52,5 +56,24 @@ export class SignalementController {
       await this.signalementService.createOne(createSignalementDTO);
 
     res.status(HttpStatus.OK).json(newSignalement);
+  }
+
+  // TODO : Implement authentication with client
+  @Put('')
+  @ApiOperation({
+    summary: 'Update a given signalement',
+    operationId: 'updateSignalement',
+  })
+  @ApiBody({ type: UpdateSignalementDTO, required: true })
+  @ApiResponse({ status: HttpStatus.OK, type: Signalement })
+  async updateSignalement(
+    @Req() req: Request,
+    @Body() updateSignalementDTO: UpdateSignalementDTO,
+    @Res() res: Response,
+  ) {
+    const updatedSignalement =
+      await this.signalementService.updateOne(updateSignalementDTO);
+
+    res.status(HttpStatus.OK).json(updatedSignalement);
   }
 }

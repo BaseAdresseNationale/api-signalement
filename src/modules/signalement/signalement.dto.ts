@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ValidatorCogCommune } from 'src/validators/cog.validator';
-import { ExistingLocationTypeEnum } from './schemas/existing-location.schema';
+import { ExistingLocation } from './schemas/existing-location.schema';
 import { SignalementTypeEnum } from './schemas/signalement.schema';
 
 class AuthorDTO {
@@ -27,15 +27,6 @@ class AuthorDTO {
   @ApiProperty({ required: false, nullable: true })
   @IsEmail()
   email: string;
-}
-
-class ExistingLocationDTO {
-  @ApiProperty({ required: true, nullable: false })
-  @IsEnum(ExistingLocationTypeEnum)
-  type: ExistingLocationTypeEnum;
-
-  @ApiProperty({ required: true, nullable: false })
-  label: string;
 }
 
 class ChangesRequestedDTO {
@@ -62,8 +53,8 @@ export class CreateSignalementDTO {
   @ApiProperty({ required: false, nullable: true })
   @IsObject()
   @ValidateNested()
-  @Type(() => ExistingLocationDTO)
-  existingLocation: ExistingLocationDTO;
+  @Type(() => ExistingLocation)
+  existingLocation: ExistingLocation;
 
   @ApiProperty({ required: true, nullable: true })
   @IsDefined()
@@ -72,4 +63,9 @@ export class CreateSignalementDTO {
   @ValidateNested()
   @Type(() => ChangesRequestedDTO)
   changesRequested: ChangesRequestedDTO;
+}
+
+export class UpdateSignalementDTO {
+  @ApiProperty({ required: true, nullable: false })
+  id: string;
 }

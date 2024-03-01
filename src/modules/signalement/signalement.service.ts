@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Signalement } from 'src/modules/signalement/schemas/signalement.schema';
-import { CreateSignalementDTO } from './signalement.dto';
+import { CreateSignalementDTO, UpdateSignalementDTO } from './signalement.dto';
 
 @Injectable()
 export class SignalementService {
@@ -10,8 +10,18 @@ export class SignalementService {
     @InjectModel(Signalement.name) private signalementModel: Model<Signalement>,
   ) {}
 
+  async findOneOrFail(id: string): Promise<Signalement> {
+    const signalement = await this.signalementModel.findById(id).lean();
+    if (!signalement) {
+      throw new Error('Signalement not found');
+    }
+    return signalement;
+  }
+
   async getByCodeCommune(codeCommune: string): Promise<Signalement[]> {
-    return this.signalementModel.find({ codeCommune }).lean();
+    return (await this.signalementModel.find({ codeCommune }).lean()).filter(
+      ({ processedAt }) => !processedAt,
+    );
   }
 
   async createOne(
@@ -21,5 +31,18 @@ export class SignalementService {
       await this.signalementModel.create(createSignalementDTO);
 
     return newSignalement.toObject();
+  }
+
+  async updateOne(
+    updateSignalementDTO: UpdateSignalementDTO,
+  ): Promise<Signalement> {
+    await this.signalementModel.updateOne(
+      { _id: updateSignalementDTO.id },
+      {
+        processedAt: new Date(),
+      },
+    );
+
+    return this.findOneOrFail(updateSignalementDTO.id);
   }
 }
