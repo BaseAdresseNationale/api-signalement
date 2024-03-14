@@ -4,6 +4,7 @@ import {
   IsDefined,
   IsEmail,
   IsEnum,
+  IsMongoId,
   IsNotEmpty,
   IsNotEmptyObject,
   IsObject,
@@ -66,6 +67,7 @@ export class CreateSignalementDTO {
 }
 
 export class UpdateSignalementDTO {
+  @IsMongoId()
   @ApiProperty({ required: true, nullable: false })
   id: string;
 }
