@@ -11,7 +11,10 @@ import {
 import { Request, Response } from 'express';
 import { SignalementService } from './signalement.service';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { CreateSignalementDTO, UpdateSignalementDTO } from './signalement.dto';
+import {
+  CreateSignalementDTO,
+  UpdateSignalementDTO,
+} from './dto/signalement.dto';
 import { Signalement } from './schemas/signalement.schema';
 
 @Controller('signalements')

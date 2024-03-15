@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Signalement } from 'src/modules/signalement/schemas/signalement.schema';
-import { CreateSignalementDTO, UpdateSignalementDTO } from './signalement.dto';
+import {
+  CreateSignalementDTO,
+  UpdateSignalementDTO,
+} from './dto/signalement.dto';
 
 @Injectable()
 export class SignalementService {
