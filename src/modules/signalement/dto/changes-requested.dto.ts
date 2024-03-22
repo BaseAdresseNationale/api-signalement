@@ -24,6 +24,16 @@ export class NumeroChangesRequestedDTO {
   positions: PositionDTO[];
 }
 
+export class ToponymeChangesRequestedDTO {
+  @ApiProperty({ required: true, nullable: false, type: String })
+  nom: string;
+}
+
+export class VoieChangesRequestedDTO {
+  @ApiProperty({ required: true, nullable: false, type: String })
+  nom: string;
+}
+
 export class DeleteNumeroChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
   comment: string;

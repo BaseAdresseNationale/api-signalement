@@ -11,12 +11,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ValidatorCogCommune } from 'src/validators/cog.validator';
-import { ExistingLocation } from '../schemas/existing-location.schema';
+import {
+  ExistingLocation,
+  ExistingLocationTypeEnum,
+} from '../schemas/existing-location.schema';
 import { SignalementTypeEnum } from '../schemas/signalement.schema';
 import { AuthorDTO } from './author.dto';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
+  ToponymeChangesRequestedDTO,
+  VoieChangesRequestedDTO,
 } from './changes-requested.dto';
 
 export class CreateSignalementDTO {
@@ -56,13 +61,22 @@ export class CreateSignalementDTO {
 
     switch (payload.type) {
       case SignalementTypeEnum.LOCATION_TO_UPDATE:
-        return NumeroChangesRequestedDTO;
+        switch (payload.existingLocation?.type) {
+          case ExistingLocationTypeEnum.NUMERO:
+            return NumeroChangesRequestedDTO;
+          case ExistingLocationTypeEnum.TOPONYME:
+            return ToponymeChangesRequestedDTO;
+          case ExistingLocationTypeEnum.VOIE:
+            return VoieChangesRequestedDTO;
+          default:
+            throw new Error('Invalid existingLocation type');
+        }
       case SignalementTypeEnum.LOCATION_TO_DELETE:
         return DeleteNumeroChangesRequestedDTO;
       case SignalementTypeEnum.LOCATION_TO_CREATE:
         return NumeroChangesRequestedDTO;
       default:
-        return NumeroChangesRequestedDTO;
+        throw new Error('Invalid signalement type');
     }
   })
   changesRequested: NumeroChangesRequestedDTO | DeleteNumeroChangesRequestedDTO;
