@@ -2,7 +2,11 @@
   "name": "api-signalement",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "Équipe Adresse <adresse@data.gouv.fr>",
+  "contributors": [
+    "Guillaume Fay <guillaume.fay@beta.gouv.fr>",
+    "Fabien Tafforeau <fabien.tafforeau@beta.gouv.fr>"
+  ],
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
