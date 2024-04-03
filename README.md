@@ -1,73 +1,84 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# API Signalement
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Api de signalement pour le system Base adresse locale
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Documentation
 
-## Description
+A venir
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Pré-requis
 
-## Installation
+- [Node.js](https://nodejs.org) 18+
+- [yarn](https://www.yarnpkg.com)
+- [MongoDB](https://www.mongodb.com) 4+
 
-```bash
-$ yarn install
+## Utilisation
+
+### Installation
+
+Installation des dépendances Node.js
+
+```
+yarn
 ```
 
-## Running the app
+Créer les variables d'environnement
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+cp .env.sample .env
 ```
 
-## Test
+On pourra ensuite éditer les variables d'environnement dans le fichier `.env` si nécessaire.
 
-```bash
-# unit tests
-$ yarn run test
+### Développement
 
-# e2e tests
-$ yarn run test:e2e
+Lancer l'application (worker + api) :
 
-# test coverage
-$ yarn run test:cov
+```
+$ yarn dev
 ```
 
-## Support
+### Production
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Créer une version de production :
 
-## Stay in touch
+```
+$ yarn build
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Démarrer l'application (port 7000 par défaut) :
 
-## License
+```
+$ yarn start
+```
 
-Nest is [MIT licensed](LICENSE).
+### Test
+
+Rapport des tests (jest) :
+
+```
+$ yarn test
+```
+
+### Linter
+
+Rapport du linter (eslint) :
+
+```
+$ yarn lint
+```
+
+## Configuration
+
+Cette application utilise des variables d'environnement pour sa configuration.
+Elles peuvent être définies classiquement ou en créant un fichier `.env` sur la base du modèle `.env.sample`.
+
+| Nom de la variable | Description                          |
+| ------------------ | ------------------------------------ |
+| `MONGODB_URL`      | Paramètre de connexion à MongoDB     |
+| `MONGODB_DBNAME`   | Nom de la base de données à utiliser |
+| `PORT`             | Port de l'api                        |
+
+## Licence
+
+MIT
