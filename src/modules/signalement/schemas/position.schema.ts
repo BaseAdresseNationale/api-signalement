@@ -1,10 +1,9 @@
 import { Prop } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   Equals,
   IsEnum,
-  IsOptional,
+  IsNotEmpty,
   Validate,
   ValidateNested,
 } from 'class-validator';
@@ -24,7 +23,7 @@ export enum PositionTypeEnum {
   INCONNUE = 'inconnue',
 }
 
-class Point implements PointTurf {
+export class Point implements PointTurf {
   @Equals('Point')
   @ApiProperty({ required: true, nullable: false })
   @Prop({
@@ -41,19 +40,18 @@ class Point implements PointTurf {
 }
 
 export class Position {
-  @IsEnum(PositionTypeEnum)
-  @ApiProperty({ enum: PositionTypeEnum })
-  @Prop({ type: SchemaTypes.String, enum: PositionTypeEnum })
-  type: PositionTypeEnum;
-
-  @IsOptional()
-  @ApiProperty()
-  @Prop({ type: SchemaTypes.String })
-  source?: string;
-
   @ValidateNested()
-  @Type(() => Point)
-  @ApiProperty({ type: () => Point })
-  @Prop({ type: Point })
+  @IsNotEmpty()
+  @ApiProperty({ required: true, nullable: false, type: Point })
+  @Prop({ type: Point, required: true, nullable: false })
   point: Point;
+
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    enum: PositionTypeEnum,
+  })
+  @IsNotEmpty()
+  @IsEnum(PositionTypeEnum)
+  type: PositionTypeEnum;
 }

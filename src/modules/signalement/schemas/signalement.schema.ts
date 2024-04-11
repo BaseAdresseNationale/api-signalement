@@ -3,8 +3,13 @@ import { HydratedDocument, SchemaTypes } from 'mongoose';
 
 import { BaseEntity } from './base.schema';
 import { Author } from './author.schema';
-import { ExistingLocation } from './existing-location.schema';
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  ExistingLocation,
+  ExistingNumero,
+  ExistingToponyme,
+  ExistingVoie,
+} from './existing-location.schema';
+import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { ChangesRequested } from './changes-requested.schema';
 
 export enum SignalementTypeEnum {
@@ -17,12 +22,13 @@ export enum SignalementTypeEnum {
 export type BasesLocaleDocument = HydratedDocument<Signalement>;
 
 @Schema({ collection: 'signalements' })
+@ApiExtraModels(ExistingNumero, ExistingToponyme, ExistingVoie)
 export class Signalement extends BaseEntity {
   @ApiProperty({ required: true, nullable: false })
   @Prop({ type: SchemaTypes.String })
   codeCommune: string;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: true, nullable: false, enum: SignalementTypeEnum })
   @Prop({ type: SchemaTypes.String, enum: SignalementTypeEnum })
   type: SignalementTypeEnum;
 
@@ -30,11 +36,19 @@ export class Signalement extends BaseEntity {
   @Prop({ type: Author })
   author?: Author;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    oneOf: [
+      { $ref: getSchemaPath(ExistingNumero) },
+      { $ref: getSchemaPath(ExistingVoie) },
+      { $ref: getSchemaPath(ExistingToponyme) },
+    ],
+  })
   @Prop({ type: ExistingLocation })
-  existingLocation?: ExistingLocation;
+  existingLocation?: ExistingNumero | ExistingVoie | ExistingToponyme;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: true, nullable: false, type: ChangesRequested })
   @Prop({ type: ChangesRequested })
   changesRequested: ChangesRequested;
 

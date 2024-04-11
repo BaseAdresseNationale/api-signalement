@@ -1,8 +1,8 @@
 import { Prop } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
 import { SchemaTypes } from 'mongoose';
-import { PositionCoordinatesDTO } from '../dto/position.dto';
 import { Type } from 'class-transformer';
+import { Position } from './position.schema';
 
 export enum ExistingLocationTypeEnum {
   NUMERO = 'NUMERO',
@@ -11,7 +11,11 @@ export enum ExistingLocationTypeEnum {
 }
 
 export abstract class ExistingLocation {
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    enum: ExistingLocationTypeEnum,
+  })
   @Prop({ enum: ExistingLocationTypeEnum })
   type: ExistingLocationTypeEnum;
 }
@@ -52,11 +56,16 @@ export class ExistingNumero extends ExistingLocation {
   @Prop({ type: SchemaTypes.String })
   suffixe: string;
 
-  @ApiProperty({ required: true, nullable: false })
-  @Type(() => PositionCoordinatesDTO)
-  position: PositionCoordinatesDTO;
+  @ApiProperty({ required: true, nullable: false, type: Position })
+  @Type(() => Position)
+  @Prop({ type: Position })
+  position: Position;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    oneOf: [{ type: 'ExistingVoie' }, { type: 'ExistingToponyme' }],
+  })
   @Prop({ type: ExistingLocation })
   toponyme: ExistingVoie | ExistingToponyme;
 }

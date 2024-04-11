@@ -21,10 +21,10 @@ export class PositionDTO {
   })
   @IsNotEmpty()
   @Type(() => PositionCoordinatesDTO)
-  position: PositionCoordinatesDTO;
+  point: PositionCoordinatesDTO;
 
   @ApiProperty({ required: true, nullable: false, type: String })
   @IsNotEmpty()
   @IsEnum(PositionTypeEnum)
-  positionType: PositionTypeEnum;
+  type: PositionTypeEnum;
 }
