@@ -29,6 +29,7 @@
   "dependencies": {
     "@ban-team/validateur-bal": "^2.17.0",
     "@etalab/decoupage-administratif": "^3.1.1",
+    "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.0.0",
@@ -36,6 +37,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.3.0",
     "@turf/helpers": "^6.5.0",
+    "axios": "^1.7.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "mongoose": "^8.1.1",

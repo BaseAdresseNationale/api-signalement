@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { SchemaTypes } from 'mongoose';
 import { Point as PointTurf, Position as PositionTurf } from '@turf/helpers';
-import { PointValidator } from 'src/validators/point.validator';
+import { PointValidator } from '../../../validators/point.validator';
 
 export enum PositionTypeEnum {
   ENTREE = 'entrée',

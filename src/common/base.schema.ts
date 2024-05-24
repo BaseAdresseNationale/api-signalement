@@ -9,13 +9,13 @@ export class BaseEntity {
 
   @Prop({ type: SchemaTypes.Date, default: Date.now })
   @ApiProperty({ required: true, nullable: false })
-  _created: Date;
+  _createdAt: number;
 
   @Prop({ type: SchemaTypes.Date, default: Date.now })
   @ApiProperty({ required: true, nullable: false })
-  _updated: Date;
+  _updatedAt: number;
 
   @Prop({ type: SchemaTypes.Date, default: null })
   @ApiProperty({ required: false, nullable: true })
-  _deleted?: Date;
+  _deletedAt?: number;
 }

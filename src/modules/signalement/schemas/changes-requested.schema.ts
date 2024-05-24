@@ -5,9 +5,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray } from 'class-validator';
 
 export class ChangesRequested {
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: false, nullable: true })
   @Prop({ type: SchemaTypes.Number })
-  numero: number;
+  numero?: number;
 
   @ApiProperty({ required: false, nullable: true })
   @Prop({ type: SchemaTypes.String })
@@ -30,4 +30,8 @@ export class ChangesRequested {
   @ApiProperty({ required: false, nullable: true })
   @Prop({ type: SchemaTypes.String })
   nom?: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  @Prop({ type: SchemaTypes.String })
+  comment?: string;
 }

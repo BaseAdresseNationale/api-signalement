@@ -1,7 +1,7 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, SchemaTypes } from 'mongoose';
+import { Prop, Schema } from '@nestjs/mongoose';
+import { SchemaTypes } from 'mongoose';
 
-import { BaseEntity } from './base.schema';
+import { BaseEntity } from '../../../common/base.schema';
 import { Author } from './author.schema';
 import {
   ExistingLocation,
@@ -11,15 +11,13 @@ import {
 } from './existing-location.schema';
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { ChangesRequested } from './changes-requested.schema';
-
-export enum SignalementTypeEnum {
-  LOCATION_TO_UPDATE = 'LOCATION_TO_UPDATE',
-  LOCATION_TO_DELETE = 'LOCATION_TO_DELETE',
-  LOCATION_TO_CREATE = 'LOCATION_TO_CREATE',
-  OTHER = 'OTHER',
-}
-
-export type BasesLocaleDocument = HydratedDocument<Signalement>;
+import {
+  SignalementStatusEnum,
+  SignalementTypeEnum,
+} from '../signalement.types';
+import { createSchema } from '../../../utils/mongoose.utils';
+import { Client } from '../../client/client.schema';
+import { Source } from '../../source/source.schema';
 
 @Schema({ collection: 'signalements' })
 @ApiExtraModels(ExistingNumero, ExistingToponyme, ExistingVoie)
@@ -35,6 +33,10 @@ export class Signalement extends BaseEntity {
   @ApiProperty({ required: false, nullable: true })
   @Prop({ type: Author })
   author?: Author;
+
+  @ApiProperty({ required: true, nullable: false, type: Source })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Source' })
+  source: Source;
 
   @ApiProperty({
     required: false,
@@ -52,9 +54,17 @@ export class Signalement extends BaseEntity {
   @Prop({ type: ChangesRequested })
   changesRequested: ChangesRequested;
 
-  @ApiProperty({ required: false, nullable: true })
-  @Prop({ type: SchemaTypes.Date, default: null })
-  processedAt?: Date;
+  @ApiProperty({ required: false, nullable: true, enum: SignalementStatusEnum })
+  @Prop({
+    type: SchemaTypes.String,
+    enum: SignalementStatusEnum,
+    default: SignalementStatusEnum.PENDING,
+  })
+  status: SignalementStatusEnum;
+
+  @ApiProperty({ required: false, nullable: true, type: Client })
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Client' })
+  processedBy?: Client;
 }
 
-export const SignalementSchema = SchemaFactory.createForClass(Signalement);
+export const SignalementSchema = createSchema(Signalement);

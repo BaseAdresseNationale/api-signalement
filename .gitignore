@@ -1,6 +1,7 @@
 .env
 .nvmrc
 /certs
+/data
 
 # compiled output
 /dist

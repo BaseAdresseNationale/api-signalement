@@ -15,7 +15,7 @@ import {
   ExistingLocation,
   ExistingLocationTypeEnum,
 } from '../schemas/existing-location.schema';
-import { SignalementTypeEnum } from '../schemas/signalement.schema';
+
 import { AuthorDTO } from './author.dto';
 import {
   DeleteNumeroChangesRequestedDTO,
@@ -23,6 +23,10 @@ import {
   ToponymeChangesRequestedDTO,
   VoieChangesRequestedDTO,
 } from './changes-requested.dto';
+import {
+  SignalementStatusEnum,
+  SignalementTypeEnum,
+} from '../signalement.types';
 
 export class CreateSignalementDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -86,4 +90,8 @@ export class UpdateSignalementDTO {
   @IsMongoId()
   @ApiProperty({ required: true, nullable: false })
   id: string;
+
+  @ApiProperty({ required: true, nullable: false, enum: SignalementStatusEnum })
+  @IsEnum(SignalementStatusEnum)
+  status: SignalementStatusEnum;
 }

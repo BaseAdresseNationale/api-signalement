@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Signalement } from 'src/modules/signalement/schemas/signalement.schema';
+import {
+  SignalementStatusEnum,
+  SignalementTypeEnum,
+} from './signalement.types';
 import {
   CreateSignalementDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
+import { Signalement } from './schemas/signalement.schema';
 
 @Injectable()
 export class SignalementService {
@@ -21,30 +25,60 @@ export class SignalementService {
     return signalement;
   }
 
-  async getByCodeCommune(codeCommune: string): Promise<Signalement[]> {
-    return (await this.signalementModel.find({ codeCommune }).lean()).filter(
-      ({ processedAt }) => !processedAt,
-    );
+  async findMany(
+    filters: {
+      codeCommune: string;
+      sourceId?: string;
+      type?: SignalementTypeEnum;
+      status?: SignalementStatusEnum;
+    },
+    pagination: {
+      page: number;
+      limit: number;
+    },
+  ): Promise<Signalement[]> {
+    const signalements = await this.signalementModel
+      .find(
+        filters,
+        {},
+        {
+          skip: (pagination.page - 1) * pagination.limit,
+          limit: pagination.limit,
+          lean: true,
+        },
+      )
+      .populate('source', { _id: 1, nom: 1, type: 1 })
+      .populate('processedBy', { _id: 1, nom: 1 })
+      .exec();
+
+    return signalements;
   }
 
   async createOne(
+    sourceId: string,
     createSignalementDTO: CreateSignalementDTO,
   ): Promise<Signalement> {
-    const newSignalement =
-      await this.signalementModel.create(createSignalementDTO);
+    const newSignalement = await this.signalementModel.create({
+      source: sourceId,
+      ...createSignalementDTO,
+    });
 
     return newSignalement.toObject();
   }
 
   async updateOne(
+    clientId: string,
     updateSignalementDTO: UpdateSignalementDTO,
   ): Promise<Signalement> {
     await this.signalementModel.updateOne(
       { _id: updateSignalementDTO.id },
       {
-        processedAt: new Date(),
+        status: updateSignalementDTO.status,
+        processedBy: clientId,
       },
     );
+
+    // TODO : Notification to author
 
     return this.findOneOrFail(updateSignalementDTO.id);
   }

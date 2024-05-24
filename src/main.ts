@@ -14,7 +14,25 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth(
       {
-        description: `Please enter the authentication token`,
+        description: `Please enter a valid source token`,
+        name: 'Authorization',
+        type: 'http',
+        in: 'Header',
+      },
+      'source-token',
+    )
+    .addBearerAuth(
+      {
+        description: `Please enter a valid client token`,
+        name: 'Authorization',
+        type: 'http',
+        in: 'Header',
+      },
+      'client-token',
+    )
+    .addBearerAuth(
+      {
+        description: `Please enter a valid admin token`,
         name: 'Authorization',
         type: 'http',
         in: 'Header',
