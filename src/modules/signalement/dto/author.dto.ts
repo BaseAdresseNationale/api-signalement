@@ -10,7 +10,10 @@ export class AuthorDTO {
   @IsOptional()
   lastName?: string;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: true, nullable: false })
   @IsEmail()
   email: string;
+
+  @ApiProperty({ required: true, nullable: false })
+  captchaToken: string;
 }
