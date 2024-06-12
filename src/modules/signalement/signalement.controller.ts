@@ -90,6 +90,11 @@ export class SignalementController {
     operationId: 'createSignalement',
   })
   @ApiBody({ type: CreateSignalementDTO, required: true })
+  @ApiQuery({
+    name: 'sourceId',
+    required: false,
+    type: String,
+  })
   @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('source-token')
   @UseGuards(SourceGuard)

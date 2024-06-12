@@ -15,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -51,6 +52,21 @@ export class SourceController {
     const sources = await this.sourceService.findMany(filters);
 
     res.status(HttpStatus.OK).json(sources);
+  }
+
+  @Get('/:id')
+  @ApiOperation({
+    summary: 'Get source by id',
+    operationId: 'getSourceById',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: Source,
+  })
+  @ApiParam({ name: 'id', required: true, type: String })
+  async getSource(@Req() req: Request, @Res() res: Response) {
+    const source = await this.sourceService.findOneOrFail(req.params.id);
+    res.status(HttpStatus.OK).json(source);
   }
 
   @Post('')

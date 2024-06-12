@@ -1,4 +1,9 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NestMiddleware,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
 import { SourceService } from './source.service';
@@ -22,10 +27,51 @@ export class SourceMiddleware implements NestMiddleware {
     const json = await response.json();
 
     if (!json.success) {
-      throw new Error('Invalid captcha token');
+      throw new HttpException('Invalid captcha token', HttpStatus.UNAUTHORIZED);
     }
 
     return json.success;
+  }
+
+  async validatePublicSource(
+    req: Request & { source?: Source },
+  ): Promise<Source> {
+    const sourceId = req.query.sourceId;
+    let source: Source;
+    try {
+      source = await this.sourceService.findOneOrFail(sourceId as string);
+    } catch (error) {
+      throw new HttpException('Source not found', HttpStatus.NOT_FOUND);
+    }
+    if (source.type === SourceTypeEnum.PUBLIC) {
+      const captchaToken = (req.body as CreateSignalementDTO).author
+        .captchaToken;
+      if (!captchaToken) {
+        throw new HttpException(
+          'Captcha token is required',
+          HttpStatus.PRECONDITION_FAILED,
+        );
+      }
+
+      await this.checkCaptcha(captchaToken);
+      delete req.body.author.captchaToken;
+
+      return source;
+    } else {
+      throw new HttpException('Invalid source type', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async validatePrivateSource(
+    req: Request & { source?: Source },
+  ): Promise<Source> {
+    const token = req.headers.authorization?.split(' ')[1];
+    try {
+      const source = await this.sourceService.findOneOrFailByToken(token);
+      return source;
+    } catch (error) {
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+    }
   }
 
   async use(
@@ -34,23 +80,14 @@ export class SourceMiddleware implements NestMiddleware {
     next: NextFunction,
   ) {
     const token = req.headers.authorization?.split(' ')[1];
+    let source: Source;
     if (token) {
-      const source: Source =
-        await this.sourceService.findOneOrFailByToken(token);
-
-      if (source.type === SourceTypeEnum.PUBLIC) {
-        const captchaToken = (req.body as CreateSignalementDTO).author
-          .captchaToken;
-        if (!captchaToken) {
-          throw new Error('Captcha token is required');
-        }
-
-        await this.checkCaptcha(captchaToken);
-        delete req.body.author.captchaToken;
-      }
-
-      req.source = source;
+      source = await this.validatePrivateSource(req);
+    } else {
+      source = await this.validatePublicSource(req);
     }
+
+    req.source = source;
 
     next();
   }
