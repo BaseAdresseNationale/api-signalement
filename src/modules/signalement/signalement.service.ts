@@ -27,8 +27,8 @@ export class SignalementService {
 
   async findMany(
     filters: {
-      codeCommune: string;
-      sourceId?: string;
+      codeCommune?: string;
+      source?: string;
       type?: SignalementTypeEnum;
       status?: SignalementStatusEnum;
     },
@@ -40,10 +40,13 @@ export class SignalementService {
     const signalements = await this.signalementModel
       .find(
         filters,
-        {},
+        {
+          author: 0,
+        },
         {
           skip: (pagination.page - 1) * pagination.limit,
           limit: pagination.limit,
+          sort: { createdAt: -1 },
           lean: true,
         },
       )

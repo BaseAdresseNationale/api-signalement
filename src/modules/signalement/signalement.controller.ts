@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
   HttpStatus,
+  Param,
   Post,
   Put,
   Query,
@@ -38,12 +40,12 @@ import { ClientGuard } from '../client/client.guard';
 export class SignalementController {
   constructor(private signalementService: SignalementService) {}
 
-  @Get(':codeCommune')
+  @Get('')
   @ApiOperation({
-    summary: 'Get all signalements for a given codeCommune',
-    operationId: 'getSignalementsByCodeCommune',
+    summary: 'Get signalements',
+    operationId: 'getSignalements',
   })
-  @ApiParam({ name: 'codeCommune', required: true, type: String })
+  @ApiQuery({ name: 'codeCommune', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'sourceId', required: false, type: String })
@@ -56,24 +58,26 @@ export class SignalementController {
   async getSignalements(
     @Req() req: Request,
     @Res() res: Response,
+    @Query('codeCommune') codeCommune: string,
     @Query('sourceId') sourceId: string,
     @Query('type') type: SignalementTypeEnum,
     @Query('status') status: SignalementStatusEnum,
     @Query('page') page = 1,
     @Query('limit') limit = 1000,
   ) {
-    const { codeCommune } = req.params;
-    const filters = { codeCommune };
+    const filters = {};
+
+    if (codeCommune) {
+      filters['codeCommune'] = codeCommune;
+    }
     if (sourceId) {
-      filters['sourceId'] = sourceId;
+      filters['source'] = sourceId;
     }
     if (type) {
       filters['type'] = type;
     }
     if (status) {
       filters['status'] = status;
-    } else {
-      filters['status'] = SignalementStatusEnum.PENDING;
     }
     const pagination = { page, limit: limit > 1000 ? 1000 : limit };
     const signalements = await this.signalementService.findMany(
@@ -82,6 +86,30 @@ export class SignalementController {
     );
 
     res.status(HttpStatus.OK).json(signalements);
+  }
+
+  @Get('/:idSignalement')
+  @ApiOperation({
+    summary: 'Get signalement by id',
+    operationId: 'getSignalementById',
+  })
+  @ApiParam({ name: 'idSignalement', required: true, type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: Signalement,
+  })
+  async getSignalementById(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('idSignalement') idSignalement: string,
+  ) {
+    try {
+      const signalement =
+        await this.signalementService.findOneOrFail(idSignalement);
+      res.status(HttpStatus.OK).json(signalement);
+    } catch (error) {
+      throw new HttpException('Signalement not found', HttpStatus.NOT_FOUND);
+    }
   }
 
   @Post('')
