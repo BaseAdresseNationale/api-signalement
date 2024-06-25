@@ -29,6 +29,7 @@
   "dependencies": {
     "@ban-team/validateur-bal": "^2.17.0",
     "@etalab/decoupage-administratif": "^3.1.1",
+    "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.0",
@@ -41,6 +42,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "mongoose": "^8.1.1",
+    "nodemailer": "^6.9.14",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
@@ -51,6 +53,7 @@
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
+    "@types/nodemailer": "^6.4.15",
     "@types/supertest": "^6.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",

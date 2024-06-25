@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsNotEmptyObject,
   IsObject,
+  IsOptional,
   Validate,
   ValidateNested,
 } from 'class-validator';
@@ -44,12 +45,14 @@ export class CreateSignalementDTO {
   type: SignalementTypeEnum;
 
   @ApiProperty({ required: false, nullable: true, type: AuthorDTO })
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => AuthorDTO)
-  author: AuthorDTO;
+  author?: AuthorDTO;
 
   @ApiProperty({ required: false, nullable: true, type: ExistingLocation })
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => ExistingLocation)

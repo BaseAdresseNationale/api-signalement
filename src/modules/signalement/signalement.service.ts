@@ -10,15 +10,21 @@ import {
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
 import { Signalement } from './schemas/signalement.schema';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class SignalementService {
   constructor(
     @InjectModel(Signalement.name) private signalementModel: Model<Signalement>,
+    private readonly mailerService: MailerService,
   ) {}
 
   async findOneOrFail(id: string): Promise<Signalement> {
-    const signalement = await this.signalementModel.findById(id).lean();
+    const signalement = await this.signalementModel
+      .findById(id, {
+        author: 0,
+      })
+      .lean();
     if (!signalement) {
       throw new Error('Signalement not found');
     }
@@ -73,16 +79,35 @@ export class SignalementService {
     clientId: string,
     updateSignalementDTO: UpdateSignalementDTO,
   ): Promise<Signalement> {
-    await this.signalementModel.updateOne(
-      { _id: updateSignalementDTO.id },
+    const updatedSignalement = await this.signalementModel.findByIdAndUpdate(
+      updateSignalementDTO.id,
       {
         status: updateSignalementDTO.status,
         processedBy: clientId,
       },
+      {
+        new: true,
+        lean: true,
+      },
     );
 
-    // TODO : Notification to author
+    if (updatedSignalement.author?.email) {
+      this.mailerService.sendMail({
+        to: updatedSignalement.author.email,
+        subject:
+          updatedSignalement.status === SignalementStatusEnum.PROCESSED
+            ? 'Votre signalement a bien été pris en compte'
+            : "Votre signalement n'a pas été pris en compte",
+        template:
+          updatedSignalement.status === SignalementStatusEnum.PROCESSED
+            ? 'processed'
+            : 'ignored',
+        context: {
+          signalement: updatedSignalement,
+        },
+      });
+    }
 
-    return this.findOneOrFail(updateSignalementDTO.id);
+    return updatedSignalement;
   }
 }
