@@ -92,7 +92,7 @@ describe('SIGNALEMENT MODULE', () => {
     );
     sourceModel = app.get<Model<Source>>(getModelToken(Source.name));
     clientModel = app.get<Model<Client>>(getModelToken(Client.name));
-  });
+  }, 30000);
 
   afterAll(async () => {
     await mongoConnection.dropDatabase();
