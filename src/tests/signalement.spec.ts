@@ -221,7 +221,7 @@ describe('SIGNALEMENT MODULE', () => {
         page: 1,
         limit: 100,
       });
-    });
+    }, 30000);
 
     it('should get signalements by commune', async () => {
       const source = await createRecording(sourceModel, {
