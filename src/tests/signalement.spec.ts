@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  Global,
+  INestApplication,
+  Module,
+  ValidationPipe,
+} from '@nestjs/common';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as request from 'supertest';
 import { Signalement } from '../modules/signalement/schemas/signalement.schema';
@@ -19,7 +24,6 @@ import {
   ExistingVoie,
 } from '../modules/signalement/schemas/existing-location.schema';
 import { PositionTypeEnum } from '../modules/signalement/schemas/position.schema';
-import { AppModule } from '../app.module';
 import {
   CreateSignalementDTO,
   UpdateSignalementDTO,
@@ -29,6 +33,7 @@ import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
 } from 'src/modules/signalement/dto/changes-requested.dto';
+import { SignalementModule } from '../modules/signalement/signalement.module';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -62,7 +67,19 @@ const mockMailerService = {
   sendMail: jest.fn(),
 };
 
-describe('SIGNALEMENT MODULE', () => {
+@Global()
+@Module({
+  providers: [
+    {
+      provide: MailerService,
+      useValue: mockMailerService,
+    },
+  ],
+  exports: [MailerService],
+})
+class MailerModule {}
+
+describe('Signalement module', () => {
   let app: INestApplication;
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
@@ -76,11 +93,8 @@ describe('SIGNALEMENT MODULE', () => {
     mongoConnection = (await connect(uri)).connection;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), AppModule],
-    })
-      .overrideProvider(MailerService)
-      .useValue(mockMailerService)
-      .compile();
+      imports: [MongooseModule.forRoot(uri), MailerModule, SignalementModule],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
@@ -92,7 +106,7 @@ describe('SIGNALEMENT MODULE', () => {
     );
     sourceModel = app.get<Model<Source>>(getModelToken(Source.name));
     clientModel = app.get<Model<Client>>(getModelToken(Client.name));
-  }, 30000);
+  });
 
   afterAll(async () => {
     await mongoConnection.dropDatabase();
@@ -222,7 +236,7 @@ describe('SIGNALEMENT MODULE', () => {
       });
     });
 
-    it('Get signalements by commune', async () => {
+    it('should get signalements by commune', async () => {
       const source = await createRecording(sourceModel, {
         nom: 'SIG Ville',
         type: SourceTypeEnum.PRIVATE,
