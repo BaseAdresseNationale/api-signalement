@@ -62,7 +62,7 @@ const mockMailerService = {
   sendMail: jest.fn(),
 };
 
-describe('SIGNALEMENT MODULE', () => {
+describe('Signalement module', () => {
   let app: INestApplication;
   let mongod: MongoMemoryServer;
   let mongoConnection: Connection;
@@ -73,7 +73,6 @@ describe('SIGNALEMENT MODULE', () => {
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
     const uri = mongod.getUri();
-    console.log('uri', uri);
     mongoConnection = (await connect(uri)).connection;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -221,7 +220,7 @@ describe('SIGNALEMENT MODULE', () => {
         page: 1,
         limit: 100,
       });
-    }, 30000);
+    });
 
     it('should get signalements by commune', async () => {
       const source = await createRecording(sourceModel, {
