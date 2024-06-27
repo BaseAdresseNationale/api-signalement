@@ -73,6 +73,7 @@ describe('SIGNALEMENT MODULE', () => {
   beforeAll(async () => {
     mongod = await MongoMemoryServer.create();
     const uri = mongod.getUri();
+    console.log('uri', uri);
     mongoConnection = (await connect(uri)).connection;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -92,7 +93,7 @@ describe('SIGNALEMENT MODULE', () => {
     );
     sourceModel = app.get<Model<Source>>(getModelToken(Source.name));
     clientModel = app.get<Model<Client>>(getModelToken(Client.name));
-  }, 30000);
+  });
 
   afterAll(async () => {
     await mongoConnection.dropDatabase();
@@ -222,7 +223,7 @@ describe('SIGNALEMENT MODULE', () => {
       });
     });
 
-    it('Get signalements by commune', async () => {
+    it('should get signalements by commune', async () => {
       const source = await createRecording(sourceModel, {
         nom: 'SIG Ville',
         type: SourceTypeEnum.PRIVATE,
