@@ -2,10 +2,7 @@ import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { SignalementController } from './signalement.controller';
 import { SignalementService } from './signalement.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import {
-  Signalement,
-  SignalementSchema,
-} from 'src/modules/signalement/schemas/signalement.schema';
+import { Signalement, SignalementSchema } from './schemas/signalement.schema';
 import { SourceModule } from '../source/source.module';
 import { SourceMiddleware } from '../source/source.middleware';
 import { ClientModule } from '../client/client.module';
@@ -29,8 +26,9 @@ export class SignalementModule {
       .apply(SourceMiddleware)
       .forRoutes({ path: 'signalements', method: RequestMethod.POST });
 
-    consumer
-      .apply(ClientMiddleware)
-      .forRoutes({ path: 'signalements', method: RequestMethod.PUT });
+    consumer.apply(ClientMiddleware).forRoutes({
+      path: 'signalements/:idSignalement',
+      method: RequestMethod.PUT,
+    });
   }
 }

@@ -5,7 +5,7 @@ import { PositionDTO } from './position.dto';
 
 export class NumeroChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
-  numero: string;
+  numero: number;
 
   @ApiProperty({ required: false, nullable: false, type: String })
   @IsOptional()

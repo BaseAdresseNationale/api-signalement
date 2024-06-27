@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -7,6 +7,7 @@ import {
 } from './signalement.types';
 import {
   CreateSignalementDTO,
+  PaginatedSignalementsDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
 import { Signalement } from './schemas/signalement.schema';
@@ -24,9 +25,11 @@ export class SignalementService {
       .findById(id, {
         author: 0,
       })
+      .populate('source', { _id: 1, nom: 1, type: 1 })
+      .populate('processedBy', { _id: 1, nom: 1 })
       .lean();
     if (!signalement) {
-      throw new Error('Signalement not found');
+      throw new HttpException('Signalement not found', HttpStatus.NOT_FOUND);
     }
     return signalement;
   }
@@ -42,7 +45,8 @@ export class SignalementService {
       page: number;
       limit: number;
     },
-  ): Promise<Signalement[]> {
+  ): Promise<PaginatedSignalementsDTO> {
+    const total = await this.signalementModel.countDocuments(filters);
     const signalements = await this.signalementModel
       .find(
         filters,
@@ -57,10 +61,14 @@ export class SignalementService {
         },
       )
       .populate('source', { _id: 1, nom: 1, type: 1 })
-      .populate('processedBy', { _id: 1, nom: 1 })
-      .exec();
+      .populate('processedBy', { _id: 1, nom: 1 });
 
-    return signalements;
+    return {
+      data: signalements,
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+    };
   }
 
   async createOne(
@@ -77,23 +85,27 @@ export class SignalementService {
 
   async updateOne(
     clientId: string,
+    signalementId: string,
     updateSignalementDTO: UpdateSignalementDTO,
   ): Promise<Signalement> {
-    const updatedSignalement = await this.signalementModel.findByIdAndUpdate(
-      updateSignalementDTO.id,
-      {
-        status: updateSignalementDTO.status,
-        processedBy: clientId,
-      },
-      {
-        new: true,
-        lean: true,
-      },
-    );
+    const { author, ...updatedSignalement } = await this.signalementModel
+      .findByIdAndUpdate(
+        signalementId,
+        {
+          status: updateSignalementDTO.status,
+          processedBy: clientId,
+        },
+        {
+          new: true,
+          lean: true,
+        },
+      )
+      .populate('source', { _id: 1, nom: 1, type: 1 })
+      .populate('processedBy', { _id: 1, nom: 1 });
 
-    if (updatedSignalement.author?.email) {
-      this.mailerService.sendMail({
-        to: updatedSignalement.author.email,
+    if (author?.email) {
+      await this.mailerService.sendMail({
+        to: author.email,
         subject:
           updatedSignalement.status === SignalementStatusEnum.PROCESSED
             ? 'Votre signalement a bien été pris en compte'

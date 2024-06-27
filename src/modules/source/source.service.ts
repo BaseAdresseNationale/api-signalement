@@ -25,7 +25,7 @@ export class SourceService {
   async findOneOrFailByToken(token: string): Promise<Source> {
     const source = await this.sourceModel.findOne({ token }).lean();
     if (!source) {
-      throw new Error('Source not found');
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
     }
 
     return source;

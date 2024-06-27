@@ -3,7 +3,6 @@ import { Type, TypeHelpOptions } from 'class-transformer';
 import {
   IsDefined,
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsNotEmptyObject,
   IsObject,
@@ -11,7 +10,7 @@ import {
   Validate,
   ValidateNested,
 } from 'class-validator';
-import { ValidatorCogCommune } from 'src/validators/cog.validator';
+import { ValidatorCogCommune } from '../../../validators/cog.validator';
 import {
   ExistingLocation,
   ExistingLocationTypeEnum,
@@ -28,6 +27,7 @@ import {
   SignalementStatusEnum,
   SignalementTypeEnum,
 } from '../signalement.types';
+import { Signalement } from '../schemas/signalement.schema';
 
 export class CreateSignalementDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -90,11 +90,22 @@ export class CreateSignalementDTO {
 }
 
 export class UpdateSignalementDTO {
-  @IsMongoId()
-  @ApiProperty({ required: true, nullable: false })
-  id: string;
-
   @ApiProperty({ required: true, nullable: false, enum: SignalementStatusEnum })
   @IsEnum(SignalementStatusEnum)
   status: SignalementStatusEnum;
+}
+
+export class PaginatedSignalementsDTO {
+  @ApiProperty({ required: true, nullable: false, type: [Signalement] })
+  @Type(() => Signalement)
+  data: Signalement[];
+
+  @ApiProperty({ required: true, nullable: false, type: Number })
+  page: number;
+
+  @ApiProperty({ required: true, nullable: false, type: Number })
+  limit: number;
+
+  @ApiProperty({ required: true, nullable: false, type: Number })
+  total: number;
 }

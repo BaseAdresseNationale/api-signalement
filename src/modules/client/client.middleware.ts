@@ -9,7 +9,7 @@ export class ClientMiddleware implements NestMiddleware {
   constructor(private clientService: ClientService) {}
 
   async use(
-    req: Request & { client?: Client },
+    req: Request & { registeredClient?: Client },
     res: Response,
     next: NextFunction,
   ) {
@@ -17,7 +17,7 @@ export class ClientMiddleware implements NestMiddleware {
     if (token) {
       const client: Client =
         await this.clientService.findOneOrFailByToken(token);
-      req.client = client;
+      req.registeredClient = client;
     }
 
     next();

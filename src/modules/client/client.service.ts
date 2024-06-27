@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateClientDTO } from './client.dto';
@@ -11,7 +11,7 @@ export class ClientService {
   async findOneOrFailByToken(token: string): Promise<Client> {
     const client = await this.clientModel.findOne({ token }).lean();
     if (!client) {
-      throw new Error('Client not found');
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
     }
 
     return client;

@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
   HttpStatus,
   Param,
   Post,
@@ -25,6 +24,7 @@ import {
 } from '@nestjs/swagger';
 import {
   CreateSignalementDTO,
+  PaginatedSignalementsDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
 import { Signalement } from './schemas/signalement.schema';
@@ -53,7 +53,7 @@ export class SignalementController {
   @ApiQuery({ name: 'status', required: false, enum: SignalementStatusEnum })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: Array<Signalement>,
+    type: PaginatedSignalementsDTO,
   })
   async getSignalements(
     @Req() req: Request,
@@ -63,7 +63,7 @@ export class SignalementController {
     @Query('type') type: SignalementTypeEnum,
     @Query('status') status: SignalementStatusEnum,
     @Query('page') page = 1,
-    @Query('limit') limit = 1000,
+    @Query('limit') limit = 100,
   ) {
     const filters = {};
 
@@ -79,37 +79,13 @@ export class SignalementController {
     if (status) {
       filters['status'] = status;
     }
-    const pagination = { page, limit: limit > 1000 ? 1000 : limit };
+    const pagination = { page, limit: limit > 100 ? 100 : limit };
     const signalements = await this.signalementService.findMany(
       filters,
       pagination,
     );
 
     res.status(HttpStatus.OK).json(signalements);
-  }
-
-  @Get('/:idSignalement')
-  @ApiOperation({
-    summary: 'Get signalement by id',
-    operationId: 'getSignalementById',
-  })
-  @ApiParam({ name: 'idSignalement', required: true, type: String })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: Signalement,
-  })
-  async getSignalementById(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Param('idSignalement') idSignalement: string,
-  ) {
-    try {
-      const signalement =
-        await this.signalementService.findOneOrFail(idSignalement);
-      res.status(HttpStatus.OK).json(signalement);
-    } catch (error) {
-      throw new HttpException('Signalement not found', HttpStatus.NOT_FOUND);
-    }
   }
 
   @Post('')
@@ -139,22 +115,45 @@ export class SignalementController {
     res.status(HttpStatus.OK).json(newSignalement);
   }
 
-  @Put('')
+  @Get('/:idSignalement')
+  @ApiOperation({
+    summary: 'Get signalement by id',
+    operationId: 'getSignalementById',
+  })
+  @ApiParam({ name: 'idSignalement', required: true, type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: Signalement,
+  })
+  async getSignalementById(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('idSignalement') idSignalement: string,
+  ) {
+    const signalement =
+      await this.signalementService.findOneOrFail(idSignalement);
+    res.status(HttpStatus.OK).json(signalement);
+  }
+
+  @Put('/:idSignalement')
   @ApiOperation({
     summary: 'Update a given signalement',
     operationId: 'updateSignalement',
   })
+  @ApiParam({ name: 'idSignalement', required: true, type: String })
   @ApiBody({ type: UpdateSignalementDTO, required: true })
   @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('client-token')
   @UseGuards(ClientGuard)
   async updateSignalement(
-    @Req() req: Request & { client: { _id: string } },
+    @Req() req: Request & { registeredClient: { _id: string } },
     @Body() updateSignalementDTO: UpdateSignalementDTO,
     @Res() res: Response,
+    @Param('idSignalement') idSignalement: string,
   ) {
     const updatedSignalement = await this.signalementService.updateOne(
-      req.client._id,
+      req.registeredClient._id,
+      idSignalement,
       updateSignalementDTO,
     );
 

@@ -18,6 +18,10 @@ export abstract class ExistingLocation {
   })
   @Prop({ enum: ExistingLocationTypeEnum })
   type: ExistingLocationTypeEnum;
+
+  @ApiProperty({ required: false, nullable: true })
+  @Prop({ type: SchemaTypes.String })
+  banId?: string;
 }
 
 export class ExistingVoie extends ExistingLocation {

@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpStatus,
+  Param,
   Post,
   Query,
   Req,
@@ -54,7 +55,7 @@ export class SourceController {
     res.status(HttpStatus.OK).json(sources);
   }
 
-  @Get('/:id')
+  @Get('/:idSource')
   @ApiOperation({
     summary: 'Get source by id',
     operationId: 'getSourceById',
@@ -63,9 +64,13 @@ export class SourceController {
     status: HttpStatus.OK,
     type: Source,
   })
-  @ApiParam({ name: 'id', required: true, type: String })
-  async getSource(@Req() req: Request, @Res() res: Response) {
-    const source = await this.sourceService.findOneOrFail(req.params.id);
+  @ApiParam({ name: 'idSource', required: true, type: String })
+  async getSource(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('idSource') idSource: string,
+  ) {
+    const source = await this.sourceService.findOneOrFail(idSource);
     res.status(HttpStatus.OK).json(source);
   }
 
