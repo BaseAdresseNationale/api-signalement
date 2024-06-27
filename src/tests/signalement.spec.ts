@@ -94,10 +94,7 @@ describe('Signalement module', () => {
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [MongooseModule.forRoot(uri), MailerModule, SignalementModule],
-    })
-      .overrideProvider(MailerService)
-      .useValue(mockMailerService)
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
