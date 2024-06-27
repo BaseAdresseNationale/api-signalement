@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  Global,
+  INestApplication,
+  Module,
+  ValidationPipe,
+} from '@nestjs/common';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as request from 'supertest';
 import { Signalement } from '../modules/signalement/schemas/signalement.schema';
@@ -19,7 +24,6 @@ import {
   ExistingVoie,
 } from '../modules/signalement/schemas/existing-location.schema';
 import { PositionTypeEnum } from '../modules/signalement/schemas/position.schema';
-import { AppModule } from '../app.module';
 import {
   CreateSignalementDTO,
   UpdateSignalementDTO,
@@ -29,6 +33,7 @@ import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
 } from 'src/modules/signalement/dto/changes-requested.dto';
+import { SignalementModule } from '../modules/signalement/signalement.module';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -62,6 +67,18 @@ const mockMailerService = {
   sendMail: jest.fn(),
 };
 
+@Global()
+@Module({
+  providers: [
+    {
+      provide: MailerService,
+      useValue: mockMailerService,
+    },
+  ],
+  exports: [MailerService],
+})
+class MailerModule {}
+
 describe('Signalement module', () => {
   let app: INestApplication;
   let mongod: MongoMemoryServer;
@@ -76,7 +93,7 @@ describe('Signalement module', () => {
     mongoConnection = (await connect(uri)).connection;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), AppModule],
+      imports: [MongooseModule.forRoot(uri), MailerModule, SignalementModule],
     })
       .overrideProvider(MailerService)
       .useValue(mockMailerService)
