@@ -18,8 +18,7 @@ dotenv.config();
 const pifometreSourceId = '664f3a9059acd3ae493d9f59';
 
 const getNumeroAndSuffixe = (numero: string) => {
-  const re = new RegExp(/(\d+)([a-zA-Z]*)/);
-  const match = re.exec(numero);
+  const match = numero.match(/(\d+)([a-zA-Z]*)/);
   return {
     numero: parseInt(match[1]),
     suffixe: match[2]?.toLowerCase(),
