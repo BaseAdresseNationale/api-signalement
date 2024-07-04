@@ -1,24 +1,48 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import { Client } from 'pg';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as request from 'supertest';
-import { Connection, connect } from 'mongoose';
-import { MongooseModule } from '@nestjs/mongoose';
 import { CreateClientDTO } from '../modules/client/client.dto';
 import { ClientModule } from '../modules/client/client.module';
+import { Test, TestingModule } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { entities } from '../app.entities';
 
 describe('Client module', () => {
   let app: INestApplication;
-  let mongod: MongoMemoryServer;
-  let mongoConnection: Connection;
+  let postgresContainer: StartedPostgreSqlContainer;
+  let postgresClient: Client;
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create();
-    const uri = mongod.getUri();
-    mongoConnection = (await connect(uri)).connection;
+    postgresContainer = await new PostgreSqlContainer().start();
+
+    postgresClient = new Client({
+      host: postgresContainer.getHost(),
+      port: postgresContainer.getPort(),
+      database: postgresContainer.getDatabase(),
+      user: postgresContainer.getUsername(),
+      password: postgresContainer.getPassword(),
+    });
+
+    await postgresClient.connect();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), ClientModule],
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: postgresContainer.getHost(),
+          port: postgresContainer.getPort(),
+          username: postgresContainer.getUsername(),
+          password: postgresContainer.getPassword(),
+          database: postgresContainer.getDatabase(),
+          synchronize: true,
+          entities,
+        }),
+        ClientModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -27,9 +51,8 @@ describe('Client module', () => {
   });
 
   afterAll(async () => {
-    await mongoConnection.dropDatabase();
-    await mongoConnection.close();
-    await mongod.stop();
+    await postgresClient.end();
+    await postgresContainer.stop();
     await app.close();
   });
 
@@ -57,13 +80,12 @@ describe('Client module', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        _id: expect.any(String),
+        id: expect.any(String),
         nom: 'Mes adresses',
         token: expect.any(String),
-        __v: 0,
-        _deletedAt: null,
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
       });
     });
   });

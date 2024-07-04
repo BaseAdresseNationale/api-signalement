@@ -2,7 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
 import { ClientService } from './client.service';
-import { Client } from './client.schema';
+import { Client } from './client.entity';
 
 @Injectable()
 export class ClientMiddleware implements NestMiddleware {

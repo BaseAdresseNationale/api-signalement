@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type, TypeHelpOptions } from 'class-transformer';
 import {
+  IsArray,
   IsDefined,
   IsEnum,
   IsNotEmpty,
@@ -12,11 +13,13 @@ import {
 } from 'class-validator';
 import { ValidatorCogCommune } from '../../../validators/cog.validator';
 import {
-  ExistingLocation,
   ExistingLocationTypeEnum,
+  ExistingNumero,
+  ExistingToponyme,
+  ExistingVoie,
 } from '../schemas/existing-location.schema';
 
-import { AuthorDTO } from './author.dto';
+import { AuthorDTO, AuthorInput } from './author.dto';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
@@ -27,9 +30,9 @@ import {
   SignalementStatusEnum,
   SignalementTypeEnum,
 } from '../signalement.types';
-import { Signalement } from '../schemas/signalement.schema';
+import { Signalement } from '../signalement.entity';
 
-export class CreateSignalementDTO {
+export class CreateSignalementInput {
   @ApiProperty({ required: true, nullable: false, type: String })
   @Validate(ValidatorCogCommune, ['commune'])
   codeCommune: string;
@@ -44,27 +47,59 @@ export class CreateSignalementDTO {
   })
   type: SignalementTypeEnum;
 
-  @ApiProperty({ required: false, nullable: true, type: AuthorDTO })
+  @ApiProperty({ required: false, nullable: true, type: AuthorInput })
   @IsOptional()
   @IsObject()
   @ValidateNested()
-  @Type(() => AuthorDTO)
-  author?: AuthorDTO;
+  @Type(() => AuthorInput)
+  author?: AuthorInput;
 
-  @ApiProperty({ required: false, nullable: true, type: ExistingLocation })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    oneOf: [
+      { $ref: getSchemaPath(ExistingNumero) },
+      { $ref: getSchemaPath(ExistingVoie) },
+      { $ref: getSchemaPath(ExistingToponyme) },
+    ],
+  })
   @IsOptional()
   @IsObject()
   @ValidateNested()
-  @Type(() => ExistingLocation)
-  existingLocation?: ExistingLocation;
+  @Type((type: TypeHelpOptions) => {
+    const payload: CreateSignalementInput =
+      type.object as CreateSignalementInput;
 
-  @ApiProperty({ required: true, nullable: true })
+    switch (payload.existingLocation?.type) {
+      case ExistingLocationTypeEnum.NUMERO:
+        return ExistingNumero;
+      case ExistingLocationTypeEnum.TOPONYME:
+        return ExistingToponyme;
+      case ExistingLocationTypeEnum.VOIE:
+        return ExistingVoie;
+      default:
+        throw new Error('Invalid existingLocation type');
+    }
+  })
+  existingLocation?: ExistingNumero | ExistingVoie | ExistingToponyme;
+
+  @ApiProperty({
+    required: true,
+    nullable: true,
+    oneOf: [
+      { $ref: getSchemaPath(NumeroChangesRequestedDTO) },
+      { $ref: getSchemaPath(DeleteNumeroChangesRequestedDTO) },
+      { $ref: getSchemaPath(ToponymeChangesRequestedDTO) },
+      { $ref: getSchemaPath(VoieChangesRequestedDTO) },
+    ],
+  })
   @IsDefined()
   @IsNotEmptyObject()
   @IsObject()
   @ValidateNested()
   @Type((type: TypeHelpOptions) => {
-    const payload: CreateSignalementDTO = type.object as CreateSignalementDTO;
+    const payload: CreateSignalementInput =
+      type.object as CreateSignalementInput;
 
     switch (payload.type) {
       case SignalementTypeEnum.LOCATION_TO_UPDATE:
@@ -86,7 +121,15 @@ export class CreateSignalementDTO {
         throw new Error('Invalid signalement type');
     }
   })
-  changesRequested: NumeroChangesRequestedDTO | DeleteNumeroChangesRequestedDTO;
+  changesRequested:
+    | NumeroChangesRequestedDTO
+    | DeleteNumeroChangesRequestedDTO
+    | ToponymeChangesRequestedDTO
+    | VoieChangesRequestedDTO;
+}
+
+export class CreateSignalementDTO extends CreateSignalementInput {
+  author?: AuthorDTO;
 }
 
 export class UpdateSignalementDTO {
@@ -96,8 +139,14 @@ export class UpdateSignalementDTO {
 }
 
 export class PaginatedSignalementsDTO {
-  @ApiProperty({ required: true, nullable: false, type: [Signalement] })
-  @Type(() => Signalement)
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    isArray: true,
+    type: Signalement,
+  })
+  @IsArray()
+  @Type(() => Array<Signalement>)
   data: Signalement[];
 
   @ApiProperty({ required: true, nullable: false, type: Number })

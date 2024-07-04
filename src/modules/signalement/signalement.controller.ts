@@ -27,13 +27,13 @@ import {
   PaginatedSignalementsDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
-import { Signalement } from './schemas/signalement.schema';
 import {
   SignalementStatusEnum,
   SignalementTypeEnum,
 } from './signalement.types';
 import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
+import { Signalement } from './signalement.entity';
 
 @Controller('signalements')
 @ApiTags('signalements')

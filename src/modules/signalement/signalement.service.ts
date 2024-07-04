@@ -1,6 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import {
   SignalementStatusEnum,
   SignalementTypeEnum,
@@ -10,27 +14,43 @@ import {
   PaginatedSignalementsDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
-import { Signalement } from './schemas/signalement.schema';
 import { MailerService } from '@nestjs-modules/mailer';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Signalement } from './signalement.entity';
+import { Repository } from 'typeorm';
+import { SourceService } from '../source/source.service';
+import { ClientService } from '../client/client.service';
+import { getCols } from '../../utils/repository.utils';
 
 @Injectable()
 export class SignalementService {
   constructor(
-    @InjectModel(Signalement.name) private signalementModel: Model<Signalement>,
+    @InjectRepository(Signalement)
+    private readonly signalementRepository: Repository<Signalement>,
+    @Inject(forwardRef(() => SourceService))
+    private readonly sourceService: SourceService,
+    @Inject(forwardRef(() => ClientService))
+    private readonly clientService: ClientService,
     private readonly mailerService: MailerService,
   ) {}
 
-  async findOneOrFail(id: string): Promise<Signalement> {
-    const signalement = await this.signalementModel
-      .findById(id, {
-        author: 0,
-      })
-      .populate('source', { _id: 1, nom: 1, type: 1 })
-      .populate('processedBy', { _id: 1, nom: 1 })
-      .lean();
+  async findOneOrFail(
+    id: string,
+    options?: { withAuthor?: boolean },
+  ): Promise<Signalement> {
+    const { withAuthor = false } = options || {};
+    const signalement = await this.signalementRepository.findOne({
+      where: { id },
+      relations: ['source', 'processedBy'],
+      ...(withAuthor && {
+        select: getCols(this.signalementRepository),
+      }),
+    });
+
     if (!signalement) {
       throw new HttpException('Signalement not found', HttpStatus.NOT_FOUND);
     }
+
     return signalement;
   }
 
@@ -46,22 +66,17 @@ export class SignalementService {
       limit: number;
     },
   ): Promise<PaginatedSignalementsDTO> {
-    const total = await this.signalementModel.countDocuments(filters);
-    const signalements = await this.signalementModel
-      .find(
-        filters,
-        {
-          author: 0,
+    const [signalements, total] = await this.signalementRepository.findAndCount(
+      {
+        where: {
+          ...filters,
+          ...(filters.source && { source: { id: filters.source } }),
         },
-        {
-          skip: (pagination.page - 1) * pagination.limit,
-          limit: pagination.limit,
-          sort: { createdAt: -1 },
-          lean: true,
-        },
-      )
-      .populate('source', { _id: 1, nom: 1, type: 1 })
-      .populate('processedBy', { _id: 1, nom: 1 });
+        relations: ['source', 'processedBy'],
+        order: { createdAt: 'DESC' },
+        skip: (pagination.page - 1) * pagination.limit,
+      },
+    );
 
     return {
       data: signalements,
@@ -75,12 +90,17 @@ export class SignalementService {
     sourceId: string,
     createSignalementDTO: CreateSignalementDTO,
   ): Promise<Signalement> {
-    const newSignalement = await this.signalementModel.create({
-      source: sourceId,
-      ...createSignalementDTO,
-    });
+    if (!createSignalementDTO.author?.email) {
+      delete createSignalementDTO.author;
+    }
 
-    return newSignalement.toObject();
+    const newSignalement = new Signalement(createSignalementDTO);
+    const source = await this.sourceService.findOneOrFail(sourceId);
+    newSignalement.source = source;
+
+    await this.signalementRepository.save(newSignalement);
+
+    return this.findOneOrFail(newSignalement.id);
   }
 
   async updateOne(
@@ -88,20 +108,20 @@ export class SignalementService {
     signalementId: string,
     updateSignalementDTO: UpdateSignalementDTO,
   ): Promise<Signalement> {
-    const { author, ...updatedSignalement } = await this.signalementModel
-      .findByIdAndUpdate(
-        signalementId,
-        {
-          status: updateSignalementDTO.status,
-          processedBy: clientId,
-        },
-        {
-          new: true,
-          lean: true,
-        },
-      )
-      .populate('source', { _id: 1, nom: 1, type: 1 })
-      .populate('processedBy', { _id: 1, nom: 1 });
+    const client = await this.clientService.findOneOrFail(clientId);
+
+    await this.signalementRepository.update(
+      { id: signalementId },
+      {
+        status: updateSignalementDTO.status,
+        processedBy: client,
+      },
+    );
+
+    const { author, ...updatedSignalement } = await this.findOneOrFail(
+      signalementId,
+      { withAuthor: true },
+    );
 
     if (author?.email) {
       await this.mailerService.sendMail({

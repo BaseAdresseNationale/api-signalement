@@ -17,8 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateClientDTO } from './client.dto';
-import { Client } from './client.schema';
 import { AdminGuard } from '../../common/admin.guard';
+import { Client } from './client.entity';
 
 @ApiTags('clients')
 @Controller('clients')

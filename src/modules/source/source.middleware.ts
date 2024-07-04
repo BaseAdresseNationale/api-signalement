@@ -7,9 +7,9 @@ import {
 import { Request, Response, NextFunction } from 'express';
 
 import { SourceService } from './source.service';
-import { Source } from './source.schema';
 import { SourceTypeEnum } from './source.types';
 import { CreateSignalementDTO } from '../signalement/dto/signalement.dto';
+import { Source } from './source.entity';
 
 @Injectable()
 export class SourceMiddleware implements NestMiddleware {

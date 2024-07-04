@@ -5,14 +5,7 @@ import {
   Module,
   ValidationPipe,
 } from '@nestjs/common';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as request from 'supertest';
-import { Signalement } from '../modules/signalement/schemas/signalement.schema';
-import { Connection, Model, Types, connect } from 'mongoose';
-import { MongooseModule, getModelToken } from '@nestjs/mongoose';
-import { Source } from '../modules/source/source.schema';
-import { Client } from '../modules/client/client.schema';
-import { createRecording } from './tests.utils';
 import { SourceTypeEnum } from '../modules/source/source.types';
 import {
   SignalementStatusEnum,
@@ -27,13 +20,26 @@ import { PositionTypeEnum } from '../modules/signalement/schemas/position.schema
 import {
   CreateSignalementDTO,
   UpdateSignalementDTO,
-} from 'src/modules/signalement/dto/signalement.dto';
+} from '../modules/signalement/dto/signalement.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
-} from 'src/modules/signalement/dto/changes-requested.dto';
+} from '../modules/signalement/dto/changes-requested.dto';
 import { SignalementModule } from '../modules/signalement/signalement.module';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import { Repository } from 'typeorm';
+import { Client as PGClient } from 'pg';
+import { entities } from '../app.entities';
+import { Signalement } from '../modules/signalement/signalement.entity';
+import { Source } from '../modules/source/source.entity';
+import { Client } from '../modules/client/client.entity';
+import { createRecording } from '../utils/test.utils';
+import { v4 } from 'uuid';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -41,25 +47,28 @@ const getSerializedSignalement = (
   client?: Client,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { author, _createdAt, _updatedAt, ...rest } = signalement;
+  const { author, createdAt, updatedAt, ...rest } = signalement;
   return {
     ...rest,
-    _id: signalement._id.toString(),
-    _createdAt: new Date(_createdAt).toISOString(),
-    _updatedAt: new Date(_updatedAt).toISOString(),
+    createdAt: new Date(createdAt).toISOString(),
+    updatedAt:
+      updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
     source: {
-      _id: source._id.toString(),
-      nom: source.nom,
-      type: source.type,
+      ...source,
+      createdAt: new Date(source.createdAt).toISOString(),
+      updatedAt: new Date(source.updatedAt).toISOString(),
     },
     ...(client
       ? {
           processedBy: {
-            _id: client?._id.toString(),
-            nom: client?.nom,
+            ...client,
+            createdAt: new Date(client.createdAt).toISOString(),
+            updatedAt: new Date(client.updatedAt).toISOString(),
           },
         }
-      : {}),
+      : {
+          processedBy: null,
+        }),
   };
 };
 
@@ -81,19 +90,40 @@ class MailerModule {}
 
 describe('Signalement module', () => {
   let app: INestApplication;
-  let mongod: MongoMemoryServer;
-  let mongoConnection: Connection;
-  let signalementModel: Model<Signalement>;
-  let sourceModel: Model<Source>;
-  let clientModel: Model<Client>;
+  let postgresContainer: StartedPostgreSqlContainer;
+  let postgresClient: PGClient;
+  let signalementRepository: Repository<Signalement>;
+  let clientRepository: Repository<Client>;
+  let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create();
-    const uri = mongod.getUri();
-    mongoConnection = (await connect(uri)).connection;
+    postgresContainer = await new PostgreSqlContainer().start();
+
+    postgresClient = new PGClient({
+      host: postgresContainer.getHost(),
+      port: postgresContainer.getPort(),
+      database: postgresContainer.getDatabase(),
+      user: postgresContainer.getUsername(),
+      password: postgresContainer.getPassword(),
+    });
+
+    await postgresClient.connect();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), MailerModule, SignalementModule],
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: postgresContainer.getHost(),
+          port: postgresContainer.getPort(),
+          username: postgresContainer.getUsername(),
+          password: postgresContainer.getPassword(),
+          database: postgresContainer.getDatabase(),
+          synchronize: true,
+          entities,
+        }),
+        MailerModule,
+        SignalementModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -101,36 +131,36 @@ describe('Signalement module', () => {
     await app.init();
 
     // INIT MODEL
-    signalementModel = app.get<Model<Signalement>>(
-      getModelToken(Signalement.name),
-    );
-    sourceModel = app.get<Model<Source>>(getModelToken(Source.name));
-    clientModel = app.get<Model<Client>>(getModelToken(Client.name));
+    signalementRepository = app.get(getRepositoryToken(Signalement));
+    sourceRepository = app.get(getRepositoryToken(Source));
+    clientRepository = app.get(getRepositoryToken(Client));
   });
 
   afterAll(async () => {
-    await mongoConnection.dropDatabase();
-    await mongoConnection.close();
-    await mongod.stop();
+    await postgresClient.end();
+    await postgresContainer.stop();
     await app.close();
   });
 
   afterEach(async () => {
-    await signalementModel.deleteMany({});
-    await sourceModel.deleteMany({});
-    await clientModel.deleteMany({});
+    await signalementRepository.delete({});
+    await sourceRepository.delete({});
+    await clientRepository.delete({});
     mockMailerService.sendMail.mockClear();
   });
 
   describe('GET /signalements', () => {
     it('should get paginated signalements', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      const signalement1 = await createRecording(signalementModel, {
-        source: source,
+      const signalement1Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -165,11 +195,16 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalement1Entity.source = source;
 
-      const signalement2 = await createRecording(signalementModel, {
-        source: source,
+      const signalement1 = await createRecording(
+        signalementRepository,
+        signalement1Entity,
+      );
+
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -193,8 +228,14 @@ describe('Signalement module', () => {
         },
       });
 
-      const signalement3 = await createRecording(signalementModel, {
-        source: source,
+      signalement2Entity.source = source;
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        signalement2Entity,
+      );
+
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -217,14 +258,21 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+
+      signalement3Entity.source = source;
+
+      const signalement3 = await createRecording(
+        signalementRepository,
+        signalement3Entity,
+      );
 
       const response = await request(app.getHttpServer())
         .get('/signalements')
         .expect(200);
 
-      const data = [signalement1, signalement2, signalement3].map(
+      const data = [signalement3, signalement2, signalement1].map(
         (signalement) => getSerializedSignalement(signalement, source),
       );
 
@@ -237,13 +285,16 @@ describe('Signalement module', () => {
     });
 
     it('should get signalements by commune', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      await createRecording(signalementModel, {
-        source: source,
+      const signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -278,11 +329,14 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
 
-      const signalement2 = await createRecording(signalementModel, {
-        source: source,
+      signalement.source = source;
+
+      await createRecording(signalementRepository, signalement);
+
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -306,8 +360,14 @@ describe('Signalement module', () => {
         },
       });
 
-      const signalement3 = await createRecording(signalementModel, {
-        source: source,
+      signalement2Entity.source = source;
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        signalement2Entity,
+      );
+
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -330,14 +390,21 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+
+      signalement3Entity.source = source;
+
+      const signalement3 = await createRecording(
+        signalementRepository,
+        signalement3Entity,
+      );
 
       const response = await request(app.getHttpServer())
         .get('/signalements?codeCommune=37003')
         .expect(200);
 
-      const data = [signalement2, signalement3].map((signalement) =>
+      const data = [signalement3, signalement2].map((signalement) =>
         getSerializedSignalement(signalement, source),
       );
 
@@ -350,18 +417,25 @@ describe('Signalement module', () => {
     });
 
     it('should get signalements by source', async () => {
-      const source1 = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: token1, ...source1 } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      const source2 = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: token2, ...source2 } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      await createRecording(signalementModel, {
-        source: source1,
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -396,11 +470,14 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
 
-      const signalement2 = await createRecording(signalementModel, {
-        source: source2,
+      signalement1Entity.source = source1;
+
+      await createRecording(signalementRepository, signalement1Entity);
+
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -424,8 +501,14 @@ describe('Signalement module', () => {
         },
       });
 
-      const signalement3 = await createRecording(signalementModel, {
-        source: source2,
+      signalement2Entity.source = source2;
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        signalement2Entity,
+      );
+
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -448,14 +531,21 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
 
+      signalement3Entity.source = source2;
+
+      const signalement3 = await createRecording(
+        signalementRepository,
+        signalement3Entity,
+      );
+
       const response = await request(app.getHttpServer())
-        .get('/signalements?sourceId=' + source2._id)
+        .get('/signalements?sourceId=' + source2.id)
         .expect(200);
 
-      const data = [signalement2, signalement3].map((signalement) =>
+      const data = [signalement3, signalement2].map((signalement) =>
         getSerializedSignalement(signalement, source2),
       );
 
@@ -468,13 +558,16 @@ describe('Signalement module', () => {
     });
 
     it('should get signalements by status', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      await createRecording(signalementModel, {
-        source,
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -509,12 +602,14 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
 
-      const signalement2 = await createRecording(signalementModel, {
-        source,
-        status: SignalementStatusEnum.PROCESSED,
+      signalement1Entity.source = source;
+
+      await createRecording(signalementRepository, signalement1Entity);
+
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -538,9 +633,15 @@ describe('Signalement module', () => {
         },
       });
 
-      const signalement3 = await createRecording(signalementModel, {
-        source,
-        status: SignalementStatusEnum.PROCESSED,
+      signalement2Entity.status = SignalementStatusEnum.PROCESSED;
+      signalement2Entity.source = source;
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        signalement2Entity,
+      );
+
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -563,14 +664,21 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalement3Entity.source = source;
+      signalement3Entity.status = SignalementStatusEnum.PROCESSED;
+
+      const signalement3 = await createRecording(
+        signalementRepository,
+        signalement3Entity,
+      );
 
       const response = await request(app.getHttpServer())
         .get('/signalements?status=' + SignalementStatusEnum.PROCESSED)
         .expect(200);
 
-      const data = [signalement2, signalement3].map((signalement) =>
+      const data = [signalement3, signalement2].map((signalement) =>
         getSerializedSignalement(signalement, source),
       );
 
@@ -583,13 +691,16 @@ describe('Signalement module', () => {
     });
 
     it('should get signalements by type', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
-      const signalement1 = await createRecording(signalementModel, {
-        source,
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -624,12 +735,16 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalement1Entity.source = source;
 
-      await createRecording(signalementModel, {
-        source,
-        status: SignalementStatusEnum.PROCESSED,
+      const signalement1 = await createRecording(
+        signalementRepository,
+        signalement1Entity,
+      );
+
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -652,10 +767,12 @@ describe('Signalement module', () => {
           comment: 'à supprimer car doublon',
         },
       });
+      signalement2Entity.source = source;
+      signalement2Entity.status = SignalementStatusEnum.PROCESSED;
 
-      await createRecording(signalementModel, {
-        source,
-        status: SignalementStatusEnum.PROCESSED,
+      await createRecording(signalementRepository, signalement2Entity);
+
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -678,8 +795,12 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalement3Entity.source = source;
+      signalement3Entity.status = SignalementStatusEnum.PROCESSED;
+
+      await createRecording(signalementRepository, signalement3Entity);
 
       const response = await request(app.getHttpServer())
         .get('/signalements?type=' + SignalementTypeEnum.LOCATION_TO_UPDATE)
@@ -700,13 +821,16 @@ describe('Signalement module', () => {
 
   describe('GET /signalements/:idSignalement', () => {
     it('should get a signalement by id', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      const signalement = await createRecording(signalementModel, {
-        source,
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -741,11 +865,17 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
 
       const response = await request(app.getHttpServer())
-        .get('/signalements/' + signalement._id.toString())
+        .get('/signalements/' + signalement.id)
         .expect(200);
 
       expect(response.body).toEqual(
@@ -754,7 +884,7 @@ describe('Signalement module', () => {
     });
 
     it('Throw 404 if not found', async () => {
-      const signalementId = new Types.ObjectId();
+      const signalementId = v4();
 
       await request(app.getHttpServer())
         .get(`/signalements/${signalementId}`)
@@ -808,10 +938,14 @@ describe('Signalement module', () => {
     });
 
     it('should throw 401 if no token and invalid captcha', async () => {
-      const publicSource = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...publicSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
       const createSignalementDTO: CreateSignalementDTO = {
         codeCommune: '37001',
         type: SignalementTypeEnum.LOCATION_TO_UPDATE,
@@ -853,17 +987,19 @@ describe('Signalement module', () => {
       };
 
       await request(app.getHttpServer())
-        .post(`/signalements?sourceId=${publicSource._id.toString()}`)
+        .post(`/signalements?sourceId=${publicSource.id}`)
         .send(createSignalementDTO)
         .expect(401);
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
-      const privateSource = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PRIVATE,
-        token: 'valid_token',
-      });
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
       const createSignalementDTO: CreateSignalementDTO = {
         codeCommune: '37001',
@@ -890,29 +1026,35 @@ describe('Signalement module', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post(`/signalements?sourceId=${privateSource._id.toString()}`)
+        .post(`/signalements?sourceId=${privateSource.id}`)
         .send(createSignalementDTO)
-        .set('Authorization', `Bearer ${privateSource.token}`)
+        .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
       expect(response.body).toEqual({
         ...createSignalementDTO,
-        __v: 0,
-        _id: expect.any(String),
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
-        _deletedAt: null,
-        source: privateSource._id.toString(),
+        id: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
         status: SignalementStatusEnum.PENDING,
       });
     });
 
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
-      const privateSource = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PRIVATE,
-        token: 'valid_token',
-      });
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
       const createSignalementDTO: CreateSignalementDTO = {
         codeCommune: '37001',
@@ -951,29 +1093,35 @@ describe('Signalement module', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post(`/signalements?sourceId=${privateSource._id.toString()}`)
+        .post(`/signalements?sourceId=${privateSource.id}`)
         .send(createSignalementDTO)
-        .set('Authorization', `Bearer ${privateSource.token}`)
+        .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
       expect(response.body).toEqual({
         ...createSignalementDTO,
-        __v: 0,
-        _id: expect.any(String),
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
-        _deletedAt: null,
-        source: privateSource._id.toString(),
+        id: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
         status: SignalementStatusEnum.PENDING,
       });
     });
 
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
-      const privateSource = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PRIVATE,
-        token: 'valid_token',
-      });
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
       const createSignalementDTO: CreateSignalementDTO = {
         codeCommune: '37001',
@@ -1000,19 +1148,23 @@ describe('Signalement module', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post(`/signalements?sourceId=${privateSource._id.toString()}`)
+        .post(`/signalements?sourceId=${privateSource.id}`)
         .send(createSignalementDTO)
-        .set('Authorization', `Bearer ${privateSource.token}`)
+        .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
       expect(response.body).toEqual({
         ...createSignalementDTO,
-        __v: 0,
-        _id: expect.any(String),
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
-        _deletedAt: null,
-        source: privateSource._id.toString(),
+        id: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
         status: SignalementStatusEnum.PENDING,
       });
     });
@@ -1020,13 +1172,16 @@ describe('Signalement module', () => {
 
   describe('PUT /signalements/:idSignalement', () => {
     it('should throw 401 if invalid authorization', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      const signalement = await createRecording(signalementModel, {
-        source,
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1061,32 +1216,44 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
         status: SignalementStatusEnum.PROCESSED,
       };
 
       await request(app.getHttpServer())
-        .put('/signalements/' + signalement._id.toString())
+        .put('/signalements/' + signalement.id)
         .send(updateSignalementDTO)
         .set('Authorization', `Bearer invalid_token`)
         .expect(401);
     });
 
     it('should update a signalement with email notification', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      const client = await createRecording(clientModel, {
-        nom: 'Mes adresses',
-      });
+      const { token: clientToken, ...client } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Mes adresses',
+        }),
+      );
 
-      const signalement = await createRecording(signalementModel, {
-        source,
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1121,22 +1288,32 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
         status: SignalementStatusEnum.PROCESSED,
       };
 
       const response = await request(app.getHttpServer())
-        .put('/signalements/' + signalement._id.toString())
+        .put('/signalements/' + signalement.id)
         .send(updateSignalementDTO)
-        .set('Authorization', `Bearer ${client.token}`)
+        .set('Authorization', `Bearer ${clientToken}`)
         .expect(200);
 
       expect(response.body).toEqual(
         getSerializedSignalement(
-          { ...signalement, ...updateSignalementDTO },
+          {
+            ...signalement,
+            ...updateSignalementDTO,
+            updatedAt: expect.any(String),
+          },
           source,
           client,
         ),
@@ -1153,17 +1330,24 @@ describe('Signalement module', () => {
     });
 
     it('should update a signalement without email notification', async () => {
-      const source = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      const client = await createRecording(clientModel, {
-        nom: 'Mes adresses',
-      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: clientToken, ...client } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Mes adresses',
+        }),
+      );
 
-      const signalement = await createRecording(signalementModel, {
-        source,
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         type: SignalementTypeEnum.LOCATION_TO_UPDATE,
         existingLocation: {
@@ -1195,22 +1379,32 @@ describe('Signalement module', () => {
             },
           ],
           parcelles: ['37003000BA0744', '37003000BA0743'],
-        },
+        } as NumeroChangesRequestedDTO,
       });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
         status: SignalementStatusEnum.PROCESSED,
       };
 
       const response = await request(app.getHttpServer())
-        .put('/signalements/' + signalement._id.toString())
+        .put('/signalements/' + signalement.id)
         .send(updateSignalementDTO)
-        .set('Authorization', `Bearer ${client.token}`)
+        .set('Authorization', `Bearer ${clientToken}`)
         .expect(200);
 
       expect(response.body).toEqual(
         getSerializedSignalement(
-          { ...signalement, ...updateSignalementDTO },
+          {
+            ...signalement,
+            ...updateSignalementDTO,
+            updatedAt: expect.any(String),
+          },
           source,
           client,
         ),

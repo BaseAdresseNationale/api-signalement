@@ -1,14 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ClientController } from './client.controller';
 import { ClientService } from './client.service';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Client, ClientSchema } from './client.schema';
 import { ClientMiddleware } from './client.middleware';
+import { Client } from './client.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Client.name, schema: ClientSchema }]),
-  ],
+  imports: [forwardRef(() => TypeOrmModule.forFeature([Client]))],
   controllers: [ClientController],
   providers: [ClientService, ClientMiddleware],
   exports: [ClientService, ClientMiddleware],

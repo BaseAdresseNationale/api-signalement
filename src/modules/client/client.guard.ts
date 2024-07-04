@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { Client } from './client.schema';
+import { Client } from './client.entity';
 
 @Injectable()
 export class ClientGuard implements CanActivate {

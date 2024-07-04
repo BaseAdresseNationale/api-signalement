@@ -21,10 +21,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Source } from './source.schema';
+
 import { CreateSourceDTO } from './source.dto';
 import { SourceTypeEnum } from './source.types';
 import { AdminGuard } from '../../common/admin.guard';
+import { Source } from './source.entity';
 
 @ApiTags('sources')
 @Controller('sources')

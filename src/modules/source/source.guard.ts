@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { Source } from './source.schema';
+import { Source } from './source.entity';
 
 @Injectable()
 export class SourceGuard implements CanActivate {
