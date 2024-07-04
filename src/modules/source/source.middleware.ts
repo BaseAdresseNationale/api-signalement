@@ -9,7 +9,7 @@ import { Request, Response, NextFunction } from 'express';
 import { SourceService } from './source.service';
 import { SourceTypeEnum } from './source.types';
 import { CreateSignalementDTO } from '../signalement/dto/signalement.dto';
-import { SourceEntity } from './source.entity';
+import { Source } from './source.entity';
 
 @Injectable()
 export class SourceMiddleware implements NestMiddleware {
@@ -34,10 +34,10 @@ export class SourceMiddleware implements NestMiddleware {
   }
 
   async validatePublicSource(
-    req: Request & { source?: SourceEntity },
-  ): Promise<SourceEntity> {
+    req: Request & { source?: Source },
+  ): Promise<Source> {
     const sourceId = req.query.sourceId;
-    let source: SourceEntity;
+    let source: Source;
     try {
       source = await this.sourceService.findOneOrFail(sourceId as string);
     } catch (error) {
@@ -63,8 +63,8 @@ export class SourceMiddleware implements NestMiddleware {
   }
 
   async validatePrivateSource(
-    req: Request & { source?: SourceEntity },
-  ): Promise<SourceEntity> {
+    req: Request & { source?: Source },
+  ): Promise<Source> {
     const token = req.headers.authorization?.split(' ')[1];
     try {
       const source = await this.sourceService.findOneOrFailByToken(token);
@@ -75,12 +75,12 @@ export class SourceMiddleware implements NestMiddleware {
   }
 
   async use(
-    req: Request & { source?: SourceEntity },
+    req: Request & { source?: Source },
     res: Response,
     next: NextFunction,
   ) {
     const token = req.headers.authorization?.split(' ')[1];
-    let source: SourceEntity;
+    let source: Source;
     if (token) {
       source = await this.validatePrivateSource(req);
     } else {

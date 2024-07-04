@@ -11,11 +11,11 @@ import { SourceMiddleware } from '../source/source.middleware';
 import { ClientModule } from '../client/client.module';
 import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SignalementEntity } from './signalement.entity';
+import { Signalement } from './signalement.entity';
 
 @Module({
   imports: [
-    forwardRef(() => TypeOrmModule.forFeature([SignalementEntity])),
+    forwardRef(() => TypeOrmModule.forFeature([Signalement])),
     SourceModule,
     ClientModule,
   ],

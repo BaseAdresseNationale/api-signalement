@@ -33,7 +33,7 @@ import {
 } from './signalement.types';
 import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
-import { SignalementEntity } from './signalement.entity';
+import { Signalement } from './signalement.entity';
 
 @Controller('signalements')
 @ApiTags('signalements')
@@ -99,7 +99,7 @@ export class SignalementController {
     required: false,
     type: String,
   })
-  @ApiResponse({ status: HttpStatus.OK, type: SignalementEntity })
+  @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('source-token')
   @UseGuards(SourceGuard)
   async createSignalement(
@@ -123,7 +123,7 @@ export class SignalementController {
   @ApiParam({ name: 'idSignalement', required: true, type: String })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: SignalementEntity,
+    type: Signalement,
   })
   async getSignalementById(
     @Req() req: Request,
@@ -142,7 +142,7 @@ export class SignalementController {
   })
   @ApiParam({ name: 'idSignalement', required: true, type: String })
   @ApiBody({ type: UpdateSignalementDTO, required: true })
-  @ApiResponse({ status: HttpStatus.OK, type: SignalementEntity })
+  @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('client-token')
   @UseGuards(ClientGuard)
   async updateSignalement(

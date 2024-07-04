@@ -35,16 +35,16 @@ import {
 import { Repository } from 'typeorm';
 import { Client } from 'pg';
 import { entities } from '../app.entities';
-import { SignalementEntity } from '../modules/signalement/signalement.entity';
-import { SourceEntity } from '../modules/source/source.entity';
-import { ClientEntity } from '../modules/client/client.entity';
+import { Signalement } from '../modules/signalement/signalement.entity';
+import { Source } from '../modules/source/source.entity';
+import { Client } from '../modules/client/client.entity';
 import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
 
 const getSerializedSignalement = (
-  signalement: SignalementEntity,
-  source: SourceEntity,
-  client?: ClientEntity,
+  signalement: Signalement,
+  source: Source,
+  client?: Client,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { author, createdAt, updatedAt, ...rest } = signalement;
@@ -92,9 +92,9 @@ describe('Signalement module', () => {
   let app: INestApplication;
   let postgresContainer: StartedPostgreSqlContainer;
   let postgresClient: Client;
-  let signalementRepository: Repository<SignalementEntity>;
-  let clientRepository: Repository<ClientEntity>;
-  let sourceRepository: Repository<SourceEntity>;
+  let signalementRepository: Repository<Signalement>;
+  let clientRepository: Repository<Client>;
+  let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer().start();
@@ -131,9 +131,9 @@ describe('Signalement module', () => {
     await app.init();
 
     // INIT MODEL
-    signalementRepository = app.get(getRepositoryToken(SignalementEntity));
-    sourceRepository = app.get(getRepositoryToken(SourceEntity));
-    clientRepository = app.get(getRepositoryToken(ClientEntity));
+    signalementRepository = app.get(getRepositoryToken(Signalement));
+    sourceRepository = app.get(getRepositoryToken(Source));
+    clientRepository = app.get(getRepositoryToken(Client));
   });
 
   afterAll(async () => {
@@ -154,13 +154,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
       );
 
-      const signalement1Entity = new SignalementEntity({
+      const signalement1Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -204,7 +204,7 @@ describe('Signalement module', () => {
         signalement1Entity,
       );
 
-      const signalement2Entity = new SignalementEntity({
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -235,7 +235,7 @@ describe('Signalement module', () => {
         signalement2Entity,
       );
 
-      const signalement3Entity = new SignalementEntity({
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -288,13 +288,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
       );
 
-      const signalementEntity = new SignalementEntity({
+      const Signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -332,11 +332,11 @@ describe('Signalement module', () => {
         } as NumeroChangesRequestedDTO,
       });
 
-      signalementEntity.source = source;
+      Signalement.source = source;
 
-      await createRecording(signalementRepository, signalementEntity);
+      await createRecording(signalementRepository, Signalement);
 
-      const signalement2Entity = new SignalementEntity({
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -367,7 +367,7 @@ describe('Signalement module', () => {
         signalement2Entity,
       );
 
-      const signalement3Entity = new SignalementEntity({
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -420,7 +420,7 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: token1, ...source1 } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -429,13 +429,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: token2, ...source2 } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PRIVATE,
         }),
       );
 
-      const signalement1Entity = new SignalementEntity({
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -477,7 +477,7 @@ describe('Signalement module', () => {
 
       await createRecording(signalementRepository, signalement1Entity);
 
-      const signalement2Entity = new SignalementEntity({
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -508,7 +508,7 @@ describe('Signalement module', () => {
         signalement2Entity,
       );
 
-      const signalement3Entity = new SignalementEntity({
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -561,13 +561,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
       );
 
-      const signalement1Entity = new SignalementEntity({
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -609,7 +609,7 @@ describe('Signalement module', () => {
 
       await createRecording(signalementRepository, signalement1Entity);
 
-      const signalement2Entity = new SignalementEntity({
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -641,7 +641,7 @@ describe('Signalement module', () => {
         signalement2Entity,
       );
 
-      const signalement3Entity = new SignalementEntity({
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -694,13 +694,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
       );
 
-      const signalement1Entity = new SignalementEntity({
+      const signalement1Entity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -744,7 +744,7 @@ describe('Signalement module', () => {
         signalement1Entity,
       );
 
-      const signalement2Entity = new SignalementEntity({
+      const signalement2Entity = new Signalement({
         codeCommune: '37003',
         type: SignalementTypeEnum.LOCATION_TO_DELETE,
         existingLocation: {
@@ -772,7 +772,7 @@ describe('Signalement module', () => {
 
       await createRecording(signalementRepository, signalement2Entity);
 
-      const signalement3Entity = new SignalementEntity({
+      const signalement3Entity = new Signalement({
         codeCommune: '37003',
         author: {
           email: 'test@test.com',
@@ -824,13 +824,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
       );
 
-      const signalementEntity = new SignalementEntity({
+      const Signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -867,11 +867,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      signalementEntity.source = source;
+      Signalement.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        signalementEntity,
+        Signalement,
       );
 
       const response = await request(app.getHttpServer())
@@ -941,7 +941,7 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...publicSource } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
@@ -995,7 +995,7 @@ describe('Signalement module', () => {
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -1050,7 +1050,7 @@ describe('Signalement module', () => {
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -1117,7 +1117,7 @@ describe('Signalement module', () => {
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -1175,13 +1175,13 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
       );
 
-      const signalementEntity = new SignalementEntity({
+      const Signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1218,11 +1218,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      signalementEntity.source = source;
+      Signalement.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        signalementEntity,
+        Signalement,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
@@ -1240,7 +1240,7 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: sourceToken, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
@@ -1248,12 +1248,12 @@ describe('Signalement module', () => {
 
       const { token: clientToken, ...client } = await createRecording(
         clientRepository,
-        new ClientEntity({
+        new Client({
           nom: 'Mes adresses',
         }),
       );
 
-      const signalementEntity = new SignalementEntity({
+      const Signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1290,11 +1290,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      signalementEntity.source = source;
+      Signalement.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        signalementEntity,
+        Signalement,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
@@ -1333,7 +1333,7 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: sourceToken, ...source } = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
@@ -1342,12 +1342,12 @@ describe('Signalement module', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: clientToken, ...client } = await createRecording(
         clientRepository,
-        new ClientEntity({
+        new Client({
           nom: 'Mes adresses',
         }),
       );
 
-      const signalementEntity = new SignalementEntity({
+      const Signalement = new Signalement({
         codeCommune: '37001',
         type: SignalementTypeEnum.LOCATION_TO_UPDATE,
         existingLocation: {
@@ -1381,11 +1381,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      signalementEntity.source = source;
+      Signalement.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        signalementEntity,
+        Signalement,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {

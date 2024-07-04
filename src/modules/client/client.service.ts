@@ -1,17 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateClientDTO } from './client.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ClientEntity } from './client.entity';
+import { Client } from './client.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class ClientService {
   constructor(
-    @InjectRepository(ClientEntity)
-    private readonly clientRepository: Repository<ClientEntity>,
+    @InjectRepository(Client)
+    private readonly clientRepository: Repository<Client>,
   ) {}
 
-  async findOneOrFail(id: string): Promise<ClientEntity> {
+  async findOneOrFail(id: string): Promise<Client> {
     const client = await this.clientRepository.findOne({ where: { id } });
     if (!client) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
@@ -20,7 +20,7 @@ export class ClientService {
     return client;
   }
 
-  async findOneOrFailByToken(token: string): Promise<ClientEntity> {
+  async findOneOrFailByToken(token: string): Promise<Client> {
     const client = await this.clientRepository.findOne({ where: { token } });
     if (!client) {
       throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
@@ -29,8 +29,8 @@ export class ClientService {
     return client;
   }
 
-  async createOne(createClientDTO: CreateClientDTO): Promise<ClientEntity> {
-    const newClient = new ClientEntity(createClientDTO);
+  async createOne(createClientDTO: CreateClientDTO): Promise<Client> {
+    const newClient = new Client(createClientDTO);
 
     return this.clientRepository.save(newClient);
   }

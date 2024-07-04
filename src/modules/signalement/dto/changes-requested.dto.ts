@@ -14,7 +14,7 @@ export class NumeroChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
   nomVoie: string;
 
-  @ApiProperty({ required: true, nullable: false, type: String })
+  @ApiProperty({ required: true, nullable: false, type: [String] })
   @IsArray()
   parcelles: string[];
 
@@ -22,16 +22,42 @@ export class NumeroChangesRequestedDTO {
   @IsArray()
   @Type(() => Array<PositionDTO>)
   positions: PositionDTO[];
+
+  @ApiProperty({ required: false, nullable: true, type: String })
+  @IsOptional()
+  comment?: string;
 }
 
 export class ToponymeChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
   nom: string;
+
+  @ApiProperty({ required: true, nullable: false, isArray: true, type: String })
+  @IsArray()
+  parcelles: string[];
+
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    isArray: true,
+    type: PositionDTO,
+  })
+  @IsArray()
+  @Type(() => Array<PositionDTO>)
+  positions: PositionDTO[];
+
+  @ApiProperty({ required: false, nullable: true, type: String })
+  @IsOptional()
+  comment?: string;
 }
 
 export class VoieChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
   nom: string;
+
+  @ApiProperty({ required: false, nullable: true, type: String })
+  @IsOptional()
+  comment?: string;
 }
 
 export class DeleteNumeroChangesRequestedDTO {

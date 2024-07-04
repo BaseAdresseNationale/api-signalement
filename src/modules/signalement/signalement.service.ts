@@ -16,7 +16,7 @@ import {
 } from './dto/signalement.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SignalementEntity } from './signalement.entity';
+import { Signalement } from './signalement.entity';
 import { Repository } from 'typeorm';
 import { SourceService } from '../source/source.service';
 import { ClientService } from '../client/client.service';
@@ -25,8 +25,8 @@ import { getCols } from '../../utils/repository.utils';
 @Injectable()
 export class SignalementService {
   constructor(
-    @InjectRepository(SignalementEntity)
-    private readonly signalementRepository: Repository<SignalementEntity>,
+    @InjectRepository(Signalement)
+    private readonly signalementRepository: Repository<Signalement>,
     @Inject(forwardRef(() => SourceService))
     private readonly sourceService: SourceService,
     @Inject(forwardRef(() => ClientService))
@@ -37,7 +37,7 @@ export class SignalementService {
   async findOneOrFail(
     id: string,
     options?: { withAuthor?: boolean },
-  ): Promise<SignalementEntity> {
+  ): Promise<Signalement> {
     const { withAuthor = false } = options || {};
     const signalement = await this.signalementRepository.findOne({
       where: { id },
@@ -89,12 +89,12 @@ export class SignalementService {
   async createOne(
     sourceId: string,
     createSignalementDTO: CreateSignalementDTO,
-  ): Promise<SignalementEntity> {
+  ): Promise<Signalement> {
     if (!createSignalementDTO.author?.email) {
       delete createSignalementDTO.author;
     }
 
-    const newSignalement = new SignalementEntity(createSignalementDTO);
+    const newSignalement = new Signalement(createSignalementDTO);
     const source = await this.sourceService.findOneOrFail(sourceId);
     newSignalement.source = source;
 
@@ -107,7 +107,7 @@ export class SignalementService {
     clientId: string,
     signalementId: string,
     updateSignalementDTO: UpdateSignalementDTO,
-  ): Promise<SignalementEntity> {
+  ): Promise<Signalement> {
     const client = await this.clientService.findOneOrFail(clientId);
 
     await this.signalementRepository.update(

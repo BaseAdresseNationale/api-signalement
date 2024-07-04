@@ -1,5 +1,5 @@
-import { ClientEntity } from './modules/client/client.entity';
-import { SourceEntity } from './modules/source/source.entity';
-import { SignalementEntity } from './modules/signalement/signalement.entity';
+import { Client } from './modules/client/client.entity';
+import { Source } from './modules/source/source.entity';
+import { Signalement } from './modules/signalement/signalement.entity';
 
-export const entities = [ClientEntity, SourceEntity, SignalementEntity];
+export const entities = [Client, Source, Signalement];

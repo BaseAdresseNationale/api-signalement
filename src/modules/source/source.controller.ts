@@ -25,7 +25,7 @@ import {
 import { CreateSourceDTO } from './source.dto';
 import { SourceTypeEnum } from './source.types';
 import { AdminGuard } from '../../common/admin.guard';
-import { SourceEntity } from './source.entity';
+import { Source } from './source.entity';
 
 @ApiTags('sources')
 @Controller('sources')
@@ -39,7 +39,7 @@ export class SourceController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: Array<SourceEntity>,
+    type: Array<Source>,
   })
   @ApiQuery({ name: 'type', required: false, enum: SourceTypeEnum })
   async getSources(
@@ -63,7 +63,7 @@ export class SourceController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: SourceEntity,
+    type: Source,
   })
   @ApiParam({ name: 'idSource', required: true, type: String })
   async getSource(
@@ -81,7 +81,7 @@ export class SourceController {
     operationId: 'createSource',
   })
   @ApiBody({ type: CreateSourceDTO, required: true })
-  @ApiResponse({ status: HttpStatus.OK, type: SourceEntity })
+  @ApiResponse({ status: HttpStatus.OK, type: Source })
   @ApiBearerAuth('admin-token')
   @UseGuards(AdminGuard)
   async createSource(

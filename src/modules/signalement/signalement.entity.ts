@@ -1,23 +1,39 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../common/base.entity';
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import {
   SignalementStatusEnum,
   SignalementTypeEnum,
 } from './signalement.types';
-import { SourceEntity } from '../source/source.entity';
-import { ClientEntity } from '../client/client.entity';
+import { Source } from '../source/source.entity';
+import { Client } from '../client/client.entity';
 import { CreateSignalementInput } from './dto/signalement.dto';
 import {
+  ExistingLocation,
   ExistingNumero,
   ExistingToponyme,
   ExistingVoie,
 } from './schemas/existing-location.schema';
 import { Author } from './schemas/author.schema';
-import { ChangesRequested } from './schemas/changes-requested.schema';
+import {
+  DeleteNumeroChangesRequestedDTO,
+  NumeroChangesRequestedDTO,
+  ToponymeChangesRequestedDTO,
+  VoieChangesRequestedDTO,
+} from './dto/changes-requested.dto';
 
 @Entity('signalements')
-export class SignalementEntity extends BaseEntity {
+@ApiExtraModels(
+  ExistingLocation,
+  ExistingNumero,
+  ExistingToponyme,
+  ExistingVoie,
+  NumeroChangesRequestedDTO,
+  DeleteNumeroChangesRequestedDTO,
+  ToponymeChangesRequestedDTO,
+  VoieChangesRequestedDTO,
+)
+export class Signalement extends BaseEntity {
   @ApiProperty({ required: true, nullable: false })
   @Column('text', { name: 'code_commune' })
   codeCommune: string;
@@ -43,28 +59,41 @@ export class SignalementEntity extends BaseEntity {
   existingLocation?: ExistingNumero | ExistingVoie | ExistingToponyme;
 
   @Column('jsonb', { name: 'changes_requested' })
-  @ApiProperty({ required: true, nullable: false, type: ChangesRequested })
-  changesRequested: ChangesRequested;
+  @ApiProperty({
+    required: true,
+    nullable: false,
+    oneOf: [
+      { $ref: getSchemaPath(NumeroChangesRequestedDTO) },
+      { $ref: getSchemaPath(DeleteNumeroChangesRequestedDTO) },
+      { $ref: getSchemaPath(ToponymeChangesRequestedDTO) },
+      { $ref: getSchemaPath(VoieChangesRequestedDTO) },
+    ],
+  })
+  changesRequested:
+    | NumeroChangesRequestedDTO
+    | DeleteNumeroChangesRequestedDTO
+    | ToponymeChangesRequestedDTO
+    | VoieChangesRequestedDTO;
 
   @Column('enum', { enum: SignalementStatusEnum, nullable: false })
   @ApiProperty({ required: false, nullable: true, enum: SignalementStatusEnum })
   status: SignalementStatusEnum;
 
-  @ManyToOne(() => SourceEntity, (source) => source.signalements, {
+  @ManyToOne(() => Source, (source) => source.signalements, {
     eager: true,
     persistence: false,
   })
   @JoinColumn({ name: 'source_id', referencedColumnName: 'id' })
-  @ApiProperty({ required: true, nullable: false, type: SourceEntity })
-  source: SourceEntity;
+  @ApiProperty({ required: true, nullable: false, type: Source })
+  source: Source;
 
-  @ApiProperty({ required: false, nullable: true, type: ClientEntity })
+  @ApiProperty({ required: false, nullable: true, type: Client })
   @JoinColumn({ name: 'processed_by', referencedColumnName: 'id' })
-  @ManyToOne(() => ClientEntity, (client) => client.processedSignalements, {
+  @ManyToOne(() => Client, (client) => client.processedSignalements, {
     eager: true,
     persistence: false,
   })
-  processedBy?: ClientEntity;
+  processedBy?: Client;
 
   constructor(createInput: CreateSignalementInput) {
     super();

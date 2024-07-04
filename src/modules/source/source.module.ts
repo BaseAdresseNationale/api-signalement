@@ -3,10 +3,10 @@ import { SourceController } from './source.controller';
 import { SourceService } from './source.service';
 import { SourceMiddleware } from './source.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SourceEntity } from './source.entity';
+import { Source } from './source.entity';
 
 @Module({
-  imports: [forwardRef(() => TypeOrmModule.forFeature([SourceEntity]))],
+  imports: [forwardRef(() => TypeOrmModule.forFeature([Source]))],
   controllers: [SourceController],
   providers: [SourceService, SourceMiddleware],
   exports: [SourceService, SourceMiddleware],

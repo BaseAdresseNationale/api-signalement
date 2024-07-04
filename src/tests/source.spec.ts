@@ -10,7 +10,7 @@ import { SourceModule } from '../modules/source/source.module';
 import { SourceTypeEnum } from '../modules/source/source.types';
 import { createRecording } from '../utils/test.utils';
 import { Repository } from 'typeorm';
-import { SourceEntity } from '../modules/source/source.entity';
+import { Source } from '../modules/source/source.entity';
 import { v4 } from 'uuid';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
@@ -20,7 +20,7 @@ describe('Source module', () => {
   let app: INestApplication;
   let postgresContainer: StartedPostgreSqlContainer;
   let postgresClient: Client;
-  let sourceRepository: Repository<SourceEntity>;
+  let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer().start();
@@ -54,7 +54,7 @@ describe('Source module', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
-    sourceRepository = app.get(getRepositoryToken(SourceEntity));
+    sourceRepository = app.get(getRepositoryToken(Source));
   });
 
   afterAll(async () => {
@@ -131,7 +131,7 @@ describe('Source module', () => {
     it('should get all sources', async () => {
       const source1 = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
@@ -139,7 +139,7 @@ describe('Source module', () => {
 
       const source2 = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -172,7 +172,7 @@ describe('Source module', () => {
     it('should get public sources', async () => {
       const source1 = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
@@ -180,7 +180,7 @@ describe('Source module', () => {
 
       await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
         }),
@@ -207,7 +207,7 @@ describe('Source module', () => {
     it('should get a source by id', async () => {
       const source1 = await createRecording(
         sourceRepository,
-        new SourceEntity({
+        new Source({
           nom: 'Pifomètre',
           type: SourceTypeEnum.PUBLIC,
         }),
