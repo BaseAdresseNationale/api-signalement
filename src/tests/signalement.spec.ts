@@ -33,7 +33,7 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { Repository } from 'typeorm';
-import { Client } from 'pg';
+import { Client as PGClient } from 'pg';
 import { entities } from '../app.entities';
 import { Signalement } from '../modules/signalement/signalement.entity';
 import { Source } from '../modules/source/source.entity';
@@ -91,7 +91,7 @@ class MailerModule {}
 describe('Signalement module', () => {
   let app: INestApplication;
   let postgresContainer: StartedPostgreSqlContainer;
-  let postgresClient: Client;
+  let postgresClient: PGClient;
   let signalementRepository: Repository<Signalement>;
   let clientRepository: Repository<Client>;
   let sourceRepository: Repository<Source>;
@@ -99,7 +99,7 @@ describe('Signalement module', () => {
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer().start();
 
-    postgresClient = new Client({
+    postgresClient = new PGClient({
       host: postgresContainer.getHost(),
       port: postgresContainer.getPort(),
       database: postgresContainer.getDatabase(),
@@ -294,7 +294,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const Signalement = new Signalement({
+      const signalement = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -332,9 +332,9 @@ describe('Signalement module', () => {
         } as NumeroChangesRequestedDTO,
       });
 
-      Signalement.source = source;
+      signalement.source = source;
 
-      await createRecording(signalementRepository, Signalement);
+      await createRecording(signalementRepository, signalement);
 
       const signalement2Entity = new Signalement({
         codeCommune: '37003',
@@ -830,7 +830,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const Signalement = new Signalement({
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -867,11 +867,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      Signalement.source = source;
+      signalementEntity.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        Signalement,
+        signalementEntity,
       );
 
       const response = await request(app.getHttpServer())
@@ -1181,7 +1181,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const Signalement = new Signalement({
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1218,11 +1218,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      Signalement.source = source;
+      signalementEntity.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        Signalement,
+        signalementEntity,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
@@ -1253,7 +1253,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const Signalement = new Signalement({
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
@@ -1290,11 +1290,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      Signalement.source = source;
+      signalementEntity.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        Signalement,
+        signalementEntity,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
@@ -1347,7 +1347,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const Signalement = new Signalement({
+      const signalementEntity = new Signalement({
         codeCommune: '37001',
         type: SignalementTypeEnum.LOCATION_TO_UPDATE,
         existingLocation: {
@@ -1381,11 +1381,11 @@ describe('Signalement module', () => {
           parcelles: ['37003000BA0744', '37003000BA0743'],
         } as NumeroChangesRequestedDTO,
       });
-      Signalement.source = source;
+      signalementEntity.source = source;
 
       const signalement = await createRecording(
         signalementRepository,
-        Signalement,
+        signalementEntity,
       );
 
       const updateSignalementDTO: UpdateSignalementDTO = {
