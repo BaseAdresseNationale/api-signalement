@@ -21,10 +21,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Source } from './source.schema';
+
 import { CreateSourceDTO } from './source.dto';
 import { SourceTypeEnum } from './source.types';
 import { AdminGuard } from '../../common/admin.guard';
+import { SourceEntity } from './source.entity';
 
 @ApiTags('sources')
 @Controller('sources')
@@ -38,7 +39,7 @@ export class SourceController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: Array<Source>,
+    type: Array<SourceEntity>,
   })
   @ApiQuery({ name: 'type', required: false, enum: SourceTypeEnum })
   async getSources(
@@ -62,7 +63,7 @@ export class SourceController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: Source,
+    type: SourceEntity,
   })
   @ApiParam({ name: 'idSource', required: true, type: String })
   async getSource(
@@ -80,7 +81,7 @@ export class SourceController {
     operationId: 'createSource',
   })
   @ApiBody({ type: CreateSourceDTO, required: true })
-  @ApiResponse({ status: HttpStatus.OK, type: Source })
+  @ApiResponse({ status: HttpStatus.OK, type: SourceEntity })
   @ApiBearerAuth('admin-token')
   @UseGuards(AdminGuard)
   async createSource(

@@ -17,8 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateClientDTO } from './client.dto';
-import { Client } from './client.schema';
 import { AdminGuard } from '../../common/admin.guard';
+import { ClientEntity } from './client.entity';
 
 @ApiTags('clients')
 @Controller('clients')
@@ -31,7 +31,7 @@ export class ClientController {
     operationId: 'createClient',
   })
   @ApiBody({ type: CreateClientDTO, required: true })
-  @ApiResponse({ status: HttpStatus.OK, type: Client })
+  @ApiResponse({ status: HttpStatus.OK, type: ClientEntity })
   @ApiBearerAuth('admin-token')
   @UseGuards(AdminGuard)
   async createClient(

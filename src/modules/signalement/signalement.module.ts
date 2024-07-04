@@ -1,18 +1,21 @@
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  RequestMethod,
+  forwardRef,
+} from '@nestjs/common';
 import { SignalementController } from './signalement.controller';
 import { SignalementService } from './signalement.service';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Signalement, SignalementSchema } from './schemas/signalement.schema';
 import { SourceModule } from '../source/source.module';
 import { SourceMiddleware } from '../source/source.middleware';
 import { ClientModule } from '../client/client.module';
 import { ClientMiddleware } from '../client/client.middleware';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SignalementEntity } from './signalement.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Signalement.name, schema: SignalementSchema },
-    ]),
+    forwardRef(() => TypeOrmModule.forFeature([SignalementEntity])),
     SourceModule,
     ClientModule,
   ],

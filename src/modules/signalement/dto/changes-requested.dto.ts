@@ -18,9 +18,9 @@ export class NumeroChangesRequestedDTO {
   @IsArray()
   parcelles: string[];
 
-  @ApiProperty({ required: true, nullable: false, type: PositionDTO })
+  @ApiProperty({ required: true, nullable: false, type: [PositionDTO] })
   @IsArray()
-  @Type(() => PositionDTO)
+  @Type(() => Array<PositionDTO>)
   positions: PositionDTO[];
 }
 

@@ -14,9 +14,12 @@ import { ValidatorCogCommune } from '../../../validators/cog.validator';
 import {
   ExistingLocation,
   ExistingLocationTypeEnum,
+  ExistingNumero,
+  ExistingToponyme,
+  ExistingVoie,
 } from '../schemas/existing-location.schema';
 
-import { AuthorDTO } from './author.dto';
+import { AuthorDTO, AuthorInput } from './author.dto';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
@@ -27,9 +30,9 @@ import {
   SignalementStatusEnum,
   SignalementTypeEnum,
 } from '../signalement.types';
-import { Signalement } from '../schemas/signalement.schema';
+import { SignalementEntity } from '../signalement.entity';
 
-export class CreateSignalementDTO {
+export class CreateSignalementInput {
   @ApiProperty({ required: true, nullable: false, type: String })
   @Validate(ValidatorCogCommune, ['commune'])
   codeCommune: string;
@@ -44,19 +47,19 @@ export class CreateSignalementDTO {
   })
   type: SignalementTypeEnum;
 
-  @ApiProperty({ required: false, nullable: true, type: AuthorDTO })
+  @ApiProperty({ required: false, nullable: true, type: AuthorInput })
   @IsOptional()
   @IsObject()
   @ValidateNested()
-  @Type(() => AuthorDTO)
-  author?: AuthorDTO;
+  @Type(() => AuthorInput)
+  author?: AuthorInput;
 
   @ApiProperty({ required: false, nullable: true, type: ExistingLocation })
   @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => ExistingLocation)
-  existingLocation?: ExistingLocation;
+  existingLocation?: ExistingNumero | ExistingVoie | ExistingToponyme;
 
   @ApiProperty({ required: true, nullable: true })
   @IsDefined()
@@ -64,7 +67,8 @@ export class CreateSignalementDTO {
   @IsObject()
   @ValidateNested()
   @Type((type: TypeHelpOptions) => {
-    const payload: CreateSignalementDTO = type.object as CreateSignalementDTO;
+    const payload: CreateSignalementInput =
+      type.object as CreateSignalementInput;
 
     switch (payload.type) {
       case SignalementTypeEnum.LOCATION_TO_UPDATE:
@@ -86,7 +90,15 @@ export class CreateSignalementDTO {
         throw new Error('Invalid signalement type');
     }
   })
-  changesRequested: NumeroChangesRequestedDTO | DeleteNumeroChangesRequestedDTO;
+  changesRequested:
+    | NumeroChangesRequestedDTO
+    | DeleteNumeroChangesRequestedDTO
+    | ToponymeChangesRequestedDTO
+    | VoieChangesRequestedDTO;
+}
+
+export class CreateSignalementDTO extends CreateSignalementInput {
+  author?: AuthorDTO;
 }
 
 export class UpdateSignalementDTO {
@@ -96,9 +108,9 @@ export class UpdateSignalementDTO {
 }
 
 export class PaginatedSignalementsDTO {
-  @ApiProperty({ required: true, nullable: false, type: [Signalement] })
-  @Type(() => Signalement)
-  data: Signalement[];
+  @ApiProperty({ required: true, nullable: false, type: [SignalementEntity] })
+  @Type(() => Array<SignalementEntity>)
+  data: SignalementEntity[];
 
   @ApiProperty({ required: true, nullable: false, type: Number })
   page: number;

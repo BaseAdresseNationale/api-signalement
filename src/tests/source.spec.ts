@@ -1,46 +1,70 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
+import { Client } from 'pg';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as request from 'supertest';
-import { Connection, Model, Types, connect } from 'mongoose';
-import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { CreateSourceDTO } from '../modules/source/source.dto';
 import { SourceModule } from '../modules/source/source.module';
 import { SourceTypeEnum } from '../modules/source/source.types';
-import { Source } from '../modules/source/source.schema';
-import { createRecording } from './tests.utils';
+import { createRecording } from '../utils/test.utils';
+import { Repository } from 'typeorm';
+import { SourceEntity } from '../modules/source/source.entity';
+import { v4 } from 'uuid';
+import { Test, TestingModule } from '@nestjs/testing';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { entities } from '../app.entities';
 
 describe('Source module', () => {
   let app: INestApplication;
-  let mongod: MongoMemoryServer;
-  let mongoConnection: Connection;
-  let sourceModel: Model<Source>;
+  let postgresContainer: StartedPostgreSqlContainer;
+  let postgresClient: Client;
+  let sourceRepository: Repository<SourceEntity>;
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create();
-    const uri = mongod.getUri();
-    mongoConnection = (await connect(uri)).connection;
+    postgresContainer = await new PostgreSqlContainer().start();
+
+    postgresClient = new Client({
+      host: postgresContainer.getHost(),
+      port: postgresContainer.getPort(),
+      database: postgresContainer.getDatabase(),
+      user: postgresContainer.getUsername(),
+      password: postgresContainer.getPassword(),
+    });
+
+    await postgresClient.connect();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), SourceModule],
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: postgresContainer.getHost(),
+          port: postgresContainer.getPort(),
+          username: postgresContainer.getUsername(),
+          password: postgresContainer.getPassword(),
+          database: postgresContainer.getDatabase(),
+          synchronize: true,
+          entities,
+        }),
+        SourceModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
-
-    sourceModel = app.get<Model<Source>>(getModelToken(Source.name));
+    sourceRepository = app.get(getRepositoryToken(SourceEntity));
   });
 
   afterAll(async () => {
-    await mongoConnection.dropDatabase();
-    await mongoConnection.close();
-    await mongod.stop();
+    await postgresClient.end();
+    await postgresContainer.stop();
     await app.close();
   });
 
   afterEach(async () => {
-    await sourceModel.deleteMany({});
+    await sourceRepository.delete({});
   });
 
   describe('POST /sources', () => {
@@ -69,14 +93,13 @@ describe('Source module', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        _id: expect.any(String),
+        id: expect.any(String),
         nom: 'SIG Ville',
         token: expect.any(String),
         type: SourceTypeEnum.PRIVATE,
-        __v: 0,
-        _deletedAt: null,
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
       });
     });
 
@@ -93,28 +116,34 @@ describe('Source module', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        _id: expect.any(String),
+        id: expect.any(String),
         nom: 'Pifomètre',
+        token: null,
         type: SourceTypeEnum.PUBLIC,
-        __v: 0,
-        _deletedAt: null,
-        _createdAt: expect.any(String),
-        _updatedAt: expect.any(String),
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
       });
     });
   });
 
   describe('GET /sources', () => {
     it('should get all sources', async () => {
-      const source1 = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      const source1 = await createRecording(
+        sourceRepository,
+        new SourceEntity({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      const source2 = await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      const source2 = await createRecording(
+        sourceRepository,
+        new SourceEntity({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
       const response = await request(app.getHttpServer())
         .get('/sources')
@@ -122,28 +151,40 @@ describe('Source module', () => {
 
       expect(response.body).toEqual([
         {
-          _id: source1._id.toString(),
+          id: source1.id.toString(),
           nom: source1.nom,
           type: source1.type,
+          deletedAt: null,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
         },
         {
-          _id: source2._id.toString(),
+          id: source2.id.toString(),
           nom: source2.nom,
           type: source2.type,
+          deletedAt: null,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
         },
       ]);
     });
 
     it('should get public sources', async () => {
-      const source1 = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      const source1 = await createRecording(
+        sourceRepository,
+        new SourceEntity({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-      await createRecording(sourceModel, {
-        nom: 'SIG Ville',
-        type: SourceTypeEnum.PRIVATE,
-      });
+      await createRecording(
+        sourceRepository,
+        new SourceEntity({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
 
       const response = await request(app.getHttpServer())
         .get('/sources?type=PUBLIC')
@@ -151,9 +192,12 @@ describe('Source module', () => {
 
       expect(response.body).toEqual([
         {
-          _id: source1._id.toString(),
+          id: source1.id.toString(),
           nom: source1.nom,
           type: source1.type,
+          deletedAt: null,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
         },
       ]);
     });
@@ -161,24 +205,30 @@ describe('Source module', () => {
 
   describe('GET /sources/:id', () => {
     it('should get a source by id', async () => {
-      const source1 = await createRecording(sourceModel, {
-        nom: 'Pifomètre',
-        type: SourceTypeEnum.PUBLIC,
-      });
+      const source1 = await createRecording(
+        sourceRepository,
+        new SourceEntity({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
       const response = await request(app.getHttpServer())
-        .get('/sources/' + source1._id.toString())
+        .get('/sources/' + source1.id.toString())
         .expect(200);
 
       expect(response.body).toEqual({
-        _id: source1._id.toString(),
+        id: source1.id.toString(),
         nom: source1.nom,
         type: source1.type,
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
       });
     });
 
     it('should throw 404 if not found', async () => {
-      const sourceId = new Types.ObjectId();
+      const sourceId = v4();
       await request(app.getHttpServer())
         .get(`/sources/${sourceId}`)
         .expect(404);

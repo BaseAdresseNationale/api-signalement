@@ -1,14 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SourceController } from './source.controller';
 import { SourceService } from './source.service';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Source, SourceSchema } from './source.schema';
 import { SourceMiddleware } from './source.middleware';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SourceEntity } from './source.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Source.name, schema: SourceSchema }]),
-  ],
+  imports: [forwardRef(() => TypeOrmModule.forFeature([SourceEntity]))],
   controllers: [SourceController],
   providers: [SourceService, SourceMiddleware],
   exports: [SourceService, SourceMiddleware],
