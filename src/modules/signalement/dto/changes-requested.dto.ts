@@ -4,7 +4,7 @@ import { IsOptional, IsArray } from 'class-validator';
 import { PositionDTO } from './position.dto';
 
 export class NumeroChangesRequestedDTO {
-  @ApiProperty({ required: true, nullable: false, type: String })
+  @ApiProperty({ required: true, nullable: false, type: Number })
   numero: number;
 
   @ApiProperty({ required: false, nullable: false, type: String })

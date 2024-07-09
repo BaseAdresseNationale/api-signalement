@@ -24,7 +24,7 @@ export class PositionDTO {
   @Type(() => PositionCoordinatesDTO)
   point: PositionCoordinatesDTO;
 
-  @ApiProperty({ required: true, nullable: false, type: String })
+  @ApiProperty({ required: true, nullable: false, enum: PositionTypeEnum })
   @IsNotEmpty()
   @IsEnum(PositionTypeEnum)
   type: PositionTypeEnum;

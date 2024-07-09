@@ -103,12 +103,12 @@ export class SignalementController {
   @ApiBearerAuth('source-token')
   @UseGuards(SourceGuard)
   async createSignalement(
-    @Req() req: Request & { source: { _id: string } },
+    @Req() req: Request & { source: { id: string } },
     @Body() createSignalementDTO: CreateSignalementDTO,
     @Res() res: Response,
   ) {
     const newSignalement = await this.signalementService.createOne(
-      req.source._id,
+      req.source.id,
       createSignalementDTO,
     );
 
@@ -146,13 +146,13 @@ export class SignalementController {
   @ApiBearerAuth('client-token')
   @UseGuards(ClientGuard)
   async updateSignalement(
-    @Req() req: Request & { registeredClient: { _id: string } },
+    @Req() req: Request & { registeredClient: { id: string } },
     @Body() updateSignalementDTO: UpdateSignalementDTO,
     @Res() res: Response,
     @Param('idSignalement') idSignalement: string,
   ) {
     const updatedSignalement = await this.signalementService.updateOne(
-      req.registeredClient._id,
+      req.registeredClient.id,
       idSignalement,
       updateSignalementDTO,
     );

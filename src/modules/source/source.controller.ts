@@ -66,12 +66,31 @@ export class SourceController {
     type: Source,
   })
   @ApiParam({ name: 'idSource', required: true, type: String })
-  async getSource(
+  async getSourceById(
     @Req() req: Request,
     @Res() res: Response,
     @Param('idSource') idSource: string,
   ) {
     const source = await this.sourceService.findOneOrFail(idSource);
+    res.status(HttpStatus.OK).json(source);
+  }
+
+  @Get('/token/:token')
+  @ApiOperation({
+    summary: 'Get source by token',
+    operationId: 'getSourceByToken',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: Source,
+  })
+  @ApiParam({ name: 'token', required: true, type: String })
+  async getSourceByToken(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('token') token: string,
+  ) {
+    const source = await this.sourceService.findOneOrFailByToken(token);
     res.status(HttpStatus.OK).json(source);
   }
 

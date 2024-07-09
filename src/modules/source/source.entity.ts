@@ -12,7 +12,7 @@ export class Source extends BaseEntity {
   @Column()
   nom: string;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: true, nullable: false, enum: SourceTypeEnum })
   @Column('enum', { enum: SourceTypeEnum, nullable: false })
   type: SourceTypeEnum;
 
