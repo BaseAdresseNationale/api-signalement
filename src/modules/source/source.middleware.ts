@@ -10,28 +10,11 @@ import { SourceService } from './source.service';
 import { SourceTypeEnum } from './source.types';
 import { CreateSignalementDTO } from '../signalement/dto/signalement.dto';
 import { Source } from './source.entity';
+import { FCVerification } from '../../utils/friendly-captcha.utils';
 
 @Injectable()
 export class SourceMiddleware implements NestMiddleware {
   constructor(private sourceService: SourceService) {}
-
-  async checkCaptcha(captchaToken) {
-    const response = await fetch(`https://api.hcaptcha.com/siteverify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `response=${captchaToken}&secret=${process.env.HCAPTCHA_SECRET_KEY}`,
-    });
-
-    const json = await response.json();
-
-    if (!json.success) {
-      throw new HttpException('Invalid captcha token', HttpStatus.UNAUTHORIZED);
-    }
-
-    return json.success;
-  }
 
   async validatePublicSource(
     req: Request & { source?: Source },
@@ -53,7 +36,14 @@ export class SourceMiddleware implements NestMiddleware {
         );
       }
 
-      await this.checkCaptcha(captchaToken);
+      const success = await FCVerification({
+        sitekey: process.env.FRIENDLY_CAPTCHA_SITE_KEY,
+        secret: process.env.FRIENDLY_CAPTCHA_SECRET,
+        solution: captchaToken,
+      });
+      if (!success) {
+        throw new HttpException('Invalid captcha', HttpStatus.UNAUTHORIZED);
+      }
       delete req.body.author.captchaToken;
 
       return source;
