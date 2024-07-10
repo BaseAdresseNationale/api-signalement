@@ -21,6 +21,7 @@ import { Repository } from 'typeorm';
 import { SourceService } from '../source/source.service';
 import { ClientService } from '../client/client.service';
 import { getCols } from '../../utils/repository.utils';
+import { SignalementStatsDTO } from './dto/stats.dto';
 
 @Injectable()
 export class SignalementService {
@@ -141,5 +142,66 @@ export class SignalementService {
     }
 
     return updatedSignalement;
+  }
+
+  async getStats(): Promise<SignalementStatsDTO> {
+    const qb = this.signalementRepository.createQueryBuilder('signalement');
+
+    const signalementCount = await qb.getCount();
+
+    const signalementsBySources: Array<{
+      count: number;
+      source: string;
+      status: SignalementStatusEnum;
+    }> = await qb
+      .select('source.nom', 'source')
+      .addSelect('COUNT(signalement.id)', 'count')
+      .addSelect('signalement.status', 'status')
+      .groupBy('source.id')
+      .addGroupBy('signalement.status')
+      .leftJoin('signalement.source', 'source')
+      .getRawMany();
+
+    const signalementsProcessedByClients: Array<{
+      count: number;
+      client: string | null;
+      status: SignalementStatusEnum;
+    }> = await qb
+      .select('client.nom', 'client')
+      .addSelect('COUNT(signalement.id)', 'count')
+      .addSelect('signalement.status', 'status')
+      .groupBy('client.id')
+      .addGroupBy('signalement.status')
+      .leftJoin('signalement.processedBy', 'client')
+      .getRawMany();
+
+    return {
+      total: signalementCount,
+      fromSources: signalementsBySources.reduce(
+        (acc, { source, count, status }) => {
+          if (!acc[source]) {
+            acc[source] = {};
+          }
+          acc[source][status] = count;
+
+          return acc;
+        },
+        {},
+      ),
+      processedBy: signalementsProcessedByClients.reduce(
+        (acc, { client, count, status }) => {
+          if (!client) {
+            return acc;
+          }
+          if (!acc[client]) {
+            acc[client] = {};
+          }
+          acc[client][status] = count;
+
+          return acc;
+        },
+        {},
+      ),
+    };
   }
 }

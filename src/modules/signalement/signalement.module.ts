@@ -12,6 +12,7 @@ import { ClientModule } from '../client/client.module';
 import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
+import { StatsController } from './stats.controller';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { Signalement } from './signalement.entity';
     SourceModule,
     ClientModule,
   ],
-  controllers: [SignalementController],
+  controllers: [SignalementController, StatsController],
   providers: [SignalementService],
   exports: [SignalementService],
 })
