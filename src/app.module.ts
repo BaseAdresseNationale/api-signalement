@@ -32,7 +32,7 @@ import { migrations } from './migrations';
       useFactory: async (config: ConfigService) => ({
         transport: config.get('SMTP_URL'),
         defaults: {
-          from: '"Signalements adresse" <adresse@data.gouv.fr>',
+          from: config.get('SMTP_FROM'),
         },
         template: {
           dir: __dirname + '/email-templates',
