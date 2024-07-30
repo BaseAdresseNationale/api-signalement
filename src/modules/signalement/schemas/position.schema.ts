@@ -18,7 +18,7 @@ export enum PositionTypeEnum {
   DELIVRANCE_POSTALE = 'délivrance postale',
   PARCELLE = 'parcelle',
   SEGMENT = 'segment',
-  INCONNUE = 'inconnue',
+  INCONNU = 'inconnu',
 }
 
 export class Point implements PointTurf {
