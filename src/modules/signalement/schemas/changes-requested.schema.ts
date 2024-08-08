@@ -21,6 +21,9 @@ export class ChangesRequested {
   nomVoie?: string;
 
   @ApiProperty({ required: false, nullable: true })
+  nomComplement?: string;
+
+  @ApiProperty({ required: false, nullable: true })
   nom?: string;
 
   @ApiProperty({ required: false, nullable: true })

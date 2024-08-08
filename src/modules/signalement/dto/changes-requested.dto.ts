@@ -14,6 +14,10 @@ export class NumeroChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
   nomVoie: string;
 
+  @ApiProperty({ required: false, nullable: false, type: String })
+  @IsOptional()
+  nomComplement?: string;
+
   @ApiProperty({ required: true, nullable: false, type: [String] })
   @IsArray()
   parcelles: string[];
