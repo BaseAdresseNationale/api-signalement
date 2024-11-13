@@ -34,6 +34,7 @@ import {
 import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
 import { Signalement } from './signalement.entity';
+import { In } from 'typeorm';
 
 @Controller('signalements')
 @ApiTags('signalements')
@@ -45,12 +46,29 @@ export class SignalementController {
     summary: 'Get signalements',
     operationId: 'getSignalements',
   })
-  @ApiQuery({ name: 'codeCommune', required: false, type: String })
+  @ApiQuery({
+    name: 'codeCommunes',
+    required: false,
+    type: String,
+    isArray: true,
+  })
+  @ApiQuery({ name: 'sourceIds', required: false, type: String, isArray: true })
+  @ApiQuery({
+    name: 'types',
+    required: false,
+    enum: SignalementTypeEnum,
+    isArray: true,
+    example: Object.keys(SignalementTypeEnum),
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SignalementStatusEnum,
+    isArray: true,
+    example: Object.keys(SignalementStatusEnum),
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'sourceId', required: false, type: String })
-  @ApiQuery({ name: 'type', required: false, enum: SignalementTypeEnum })
-  @ApiQuery({ name: 'status', required: false, enum: SignalementStatusEnum })
   @ApiResponse({
     status: HttpStatus.OK,
     type: PaginatedSignalementsDTO,
@@ -58,26 +76,28 @@ export class SignalementController {
   async getSignalements(
     @Req() req: Request,
     @Res() res: Response,
-    @Query('codeCommune') codeCommune: string,
-    @Query('sourceId') sourceId: string,
-    @Query('type') type: SignalementTypeEnum,
-    @Query('status') status: SignalementStatusEnum,
+    @Query('codeCommunes') codeCommunes: string | string[] = [],
+    @Query('sourceIds') sourceIds: string | string[] = [],
+    @Query('types') types: SignalementTypeEnum | SignalementTypeEnum[] = [],
+    @Query('status') status: SignalementTypeEnum | SignalementStatusEnum[] = [],
     @Query('page') page = 1,
     @Query('limit') limit = 100,
   ) {
     const filters = {};
 
-    if (codeCommune) {
-      filters['codeCommune'] = codeCommune;
+    if (codeCommunes.length > 0) {
+      filters['codeCommune'] = Array.isArray(codeCommunes)
+        ? In(codeCommunes)
+        : codeCommunes;
     }
-    if (sourceId) {
-      filters['source'] = sourceId;
+    if (sourceIds.length > 0) {
+      filters['source'] = Array.isArray(sourceIds) ? In(sourceIds) : sourceIds;
     }
-    if (type) {
-      filters['type'] = type;
+    if (types.length > 0) {
+      filters['type'] = Array.isArray(types) ? In(types) : types;
     }
-    if (status) {
-      filters['status'] = status;
+    if (status.length > 0) {
+      filters['status'] = Array.isArray(status) ? In(status) : status;
     }
     const pagination = { page, limit: limit > 100 ? 100 : limit };
     const signalements = await this.signalementService.findMany(
