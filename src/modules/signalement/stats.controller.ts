@@ -13,7 +13,7 @@ import { AdminGuard } from '../../common/admin.guard';
 @Controller('stats')
 @ApiTags('stats')
 export class StatsController {
-  constructor(private signalementService: SignalementService) {}
+  constructor(private readonly signalementService: SignalementService) {}
 
   @Get('')
   @ApiOperation({
