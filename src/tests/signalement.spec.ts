@@ -401,7 +401,7 @@ describe('Signalement module', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/signalements?codeCommune=37003')
+        .get('/signalements?codeCommunes=37003')
         .expect(200);
 
       const data = [signalement3, signalement2].map((signalement) =>
@@ -542,7 +542,7 @@ describe('Signalement module', () => {
       );
 
       const response = await request(app.getHttpServer())
-        .get('/signalements?sourceId=' + source2.id)
+        .get('/signalements?sourceIds=' + source2.id)
         .expect(200);
 
       const data = [signalement3, signalement2].map((signalement) =>
@@ -803,7 +803,7 @@ describe('Signalement module', () => {
       await createRecording(signalementRepository, signalement3Entity);
 
       const response = await request(app.getHttpServer())
-        .get('/signalements?type=' + SignalementTypeEnum.LOCATION_TO_UPDATE)
+        .get('/signalements?types=' + SignalementTypeEnum.LOCATION_TO_UPDATE)
         .expect(200);
 
       const data = [signalement1].map((signalement) =>
