@@ -125,20 +125,26 @@ export class SignalementService {
     );
 
     if (author?.email) {
-      await this.mailerService.sendMail({
-        to: author.email,
-        subject:
-          updatedSignalement.status === SignalementStatusEnum.PROCESSED
-            ? 'Votre signalement a bien été pris en compte'
-            : "Votre signalement n'a pas été pris en compte",
-        template:
-          updatedSignalement.status === SignalementStatusEnum.PROCESSED
-            ? 'processed'
-            : 'ignored',
-        context: {
-          signalement: updatedSignalement,
-        },
-      });
+      try {
+        await this.mailerService.sendMail({
+          to: author.email,
+          subject:
+            updatedSignalement.status === SignalementStatusEnum.PROCESSED
+              ? 'Votre signalement a bien été pris en compte'
+              : "Votre signalement n'a pas été pris en compte",
+          template:
+            updatedSignalement.status === SignalementStatusEnum.PROCESSED
+              ? 'processed'
+              : 'ignored',
+          context: {
+            signalement: updatedSignalement,
+          },
+        });
+      } catch (error) {
+        console.error(
+          `An error occured while sending email to ${author.email}: ${error.message}`,
+        );
+      }
     }
 
     return updatedSignalement;
