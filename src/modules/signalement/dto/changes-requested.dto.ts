@@ -1,6 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsArray } from 'class-validator';
+import {
+  IsOptional,
+  IsArray,
+  ArrayNotEmpty,
+  ValidateNested,
+} from 'class-validator';
 import { PositionDTO } from './position.dto';
 
 export class NumeroChangesRequestedDTO {
@@ -24,7 +29,9 @@ export class NumeroChangesRequestedDTO {
 
   @ApiProperty({ required: true, nullable: false, type: [PositionDTO] })
   @IsArray()
-  @Type(() => Array<PositionDTO>)
+  @ValidateNested({ each: true })
+  @ArrayNotEmpty()
+  @Type(() => PositionDTO)
   positions: PositionDTO[];
 
   @ApiProperty({ required: false, nullable: true, type: String })

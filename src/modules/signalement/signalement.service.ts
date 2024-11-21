@@ -111,6 +111,15 @@ export class SignalementService {
   ): Promise<Signalement> {
     const client = await this.clientService.findOneOrFail(clientId);
 
+    const signalement = await this.findOneOrFail(signalementId);
+
+    if (signalement.status !== SignalementStatusEnum.PENDING) {
+      throw new HttpException(
+        'Signalement already processed, cannot be updated',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     await this.signalementRepository.update(
       { id: signalementId },
       {

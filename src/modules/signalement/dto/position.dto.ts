@@ -1,17 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  ValidateNested,
+} from 'class-validator';
 import { PositionTypeEnum } from '../schemas/position.schema';
 import { Type } from 'class-transformer';
 import { Position as PositionTurf } from '@turf/helpers';
 
+enum _PositionTypeEnum {
+  POINT = 'Point',
+}
+
 export class PositionCoordinatesDTO {
   @ApiProperty({ required: true, nullable: false, type: Number, isArray: true })
   @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(2)
   coordinates: PositionTurf;
 
   @ApiProperty({ required: true, nullable: false, type: String })
-  @IsNotEmpty()
-  type: 'Point';
+  @IsEnum(_PositionTypeEnum)
+  type: _PositionTypeEnum.POINT;
 }
 
 export class PositionDTO {
@@ -21,6 +36,7 @@ export class PositionDTO {
     type: PositionCoordinatesDTO,
   })
   @IsNotEmpty()
+  @ValidateNested({ each: true })
   @Type(() => PositionCoordinatesDTO)
   point: PositionCoordinatesDTO;
 
