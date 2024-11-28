@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { Position } from './position.schema';
+import { IsArray } from 'class-validator';
 
 export enum ExistingLocationTypeEnum {
   NUMERO = 'NUMERO',
@@ -55,6 +56,10 @@ export class ExistingNumero extends ExistingLocation {
   @ApiProperty({ required: true, nullable: false, type: Position })
   @Type(() => Position)
   position: Position;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsArray()
+  parcelles?: string[];
 
   @ApiProperty({
     required: true,
