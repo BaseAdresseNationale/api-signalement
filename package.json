@@ -8,7 +8,7 @@
     "Fabien Tafforeau <fabien.tafforeau@beta.gouv.fr>"
   ],
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
