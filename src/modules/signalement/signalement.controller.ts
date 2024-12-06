@@ -81,7 +81,7 @@ export class SignalementController {
     @Query('types') types: SignalementTypeEnum | SignalementTypeEnum[] = [],
     @Query('status') status: SignalementTypeEnum | SignalementStatusEnum[] = [],
     @Query('page') page = 1,
-    @Query('limit') limit = 100,
+    @Query('limit') limit = 20,
   ) {
     const filters = {};
 

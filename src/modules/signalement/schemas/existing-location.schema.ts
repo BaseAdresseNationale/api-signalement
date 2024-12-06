@@ -39,6 +39,15 @@ export class ExistingToponyme extends ExistingLocation {
 
   @ApiProperty({ required: true, nullable: false })
   nom: string;
+
+  @ApiProperty({ required: true, nullable: false, type: Position })
+  @Type(() => Position)
+  position: Position;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsArray()
+  @IsOptional()
+  parcelles?: string[];
 }
 
 export class ExistingNumero extends ExistingLocation {

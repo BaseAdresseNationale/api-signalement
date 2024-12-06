@@ -76,6 +76,7 @@ export class SignalementService {
         relations: ['source', 'processedBy'],
         order: { createdAt: 'DESC' },
         skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
       },
     );
 
