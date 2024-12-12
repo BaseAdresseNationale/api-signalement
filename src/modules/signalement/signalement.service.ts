@@ -92,7 +92,7 @@ export class SignalementService {
     sourceId: string,
     createSignalementDTO: CreateSignalementDTO,
   ): Promise<Signalement> {
-    if (!createSignalementDTO.author?.email) {
+    if (Object.values(createSignalementDTO.author).every((v) => !v)) {
       delete createSignalementDTO.author;
     }
 
