@@ -30,9 +30,15 @@ export class SignalementModule {
       .apply(SourceMiddleware)
       .forRoutes({ path: 'signalements', method: RequestMethod.POST });
 
-    consumer.apply(ClientMiddleware).forRoutes({
-      path: 'signalements/:idSignalement',
-      method: RequestMethod.PUT,
-    });
+    consumer.apply(ClientMiddleware).forRoutes(
+      {
+        path: 'signalements/:idSignalement',
+        method: RequestMethod.GET,
+      },
+      {
+        path: 'signalements/:idSignalement',
+        method: RequestMethod.PUT,
+      },
+    );
   }
 }

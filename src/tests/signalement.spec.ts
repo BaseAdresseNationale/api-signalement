@@ -45,6 +45,7 @@ const getSerializedSignalement = (
   signalement: Signalement,
   source: Source,
   client?: Client,
+  withAuthor?: boolean,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { author, createdAt, updatedAt, ...rest } = signalement;
@@ -69,6 +70,7 @@ const getSerializedSignalement = (
       : {
           processedBy: null,
         }),
+    ...(withAuthor ? { author } : {}),
   };
 };
 
@@ -280,7 +282,7 @@ describe('Signalement module', () => {
         data,
         total: 3,
         page: 1,
-        limit: 100,
+        limit: 20,
       });
     });
 
@@ -412,7 +414,7 @@ describe('Signalement module', () => {
         data,
         total: 2,
         page: 1,
-        limit: 100,
+        limit: 20,
       });
     });
 
@@ -553,7 +555,7 @@ describe('Signalement module', () => {
         data,
         total: 2,
         page: 1,
-        limit: 100,
+        limit: 20,
       });
     });
 
@@ -686,7 +688,7 @@ describe('Signalement module', () => {
         data,
         total: 2,
         page: 1,
-        limit: 100,
+        limit: 20,
       });
     });
 
@@ -814,13 +816,86 @@ describe('Signalement module', () => {
         data,
         total: 1,
         page: 1,
-        limit: 100,
+        limit: 20,
       });
     });
   });
 
   describe('GET /signalements/:idSignalement', () => {
-    it('should get a signalement by id', async () => {
+    it('should get a signalement by id (with author infos)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Mes adresses',
+        }),
+      );
+
+      const signalementEntity = new Signalement({
+        codeCommune: '37001',
+        author: {
+          email: 'test@test.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        },
+        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        },
+        changesRequested: {
+          numero: 3,
+          suffixe: 'ter',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+          ],
+          parcelles: ['37003000BA0744', '37003000BA0743'],
+        } as NumeroChangesRequestedDTO,
+      });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual(
+        getSerializedSignalement(signalement, source, null, true),
+      );
+    });
+
+    it('should get a signalement by id (without author infos)', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, ...source } = await createRecording(
         sourceRepository,
@@ -834,6 +909,8 @@ describe('Signalement module', () => {
         codeCommune: '37001',
         author: {
           email: 'test@test.com',
+          firstName: 'John',
+          lastName: 'Doe',
         },
         type: SignalementTypeEnum.LOCATION_TO_UPDATE,
         existingLocation: {

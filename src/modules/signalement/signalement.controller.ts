@@ -35,6 +35,7 @@ import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
 import { Signalement } from './signalement.entity';
 import { In } from 'typeorm';
+import { Client } from '../client/client.entity';
 
 @Controller('signalements')
 @ApiTags('signalements')
@@ -139,19 +140,25 @@ export class SignalementController {
   @ApiOperation({
     summary: 'Get signalement by id',
     operationId: 'getSignalementById',
+    description:
+      'Get a signalement by its id, returns author info if client is authenticated',
   })
   @ApiParam({ name: 'idSignalement', required: true, type: String })
   @ApiResponse({
     status: HttpStatus.OK,
     type: Signalement,
   })
+  @ApiBearerAuth('client-token')
   async getSignalementById(
-    @Req() req: Request,
+    @Req() req: Request & { registeredClient: Client },
     @Res() res: Response,
     @Param('idSignalement') idSignalement: string,
   ) {
-    const signalement =
-      await this.signalementService.findOneOrFail(idSignalement);
+    const signalement = await this.signalementService.findOneOrFail(
+      idSignalement,
+      { withAuthor: Boolean(req.registeredClient) },
+    );
+
     res.status(HttpStatus.OK).json(signalement);
   }
 

@@ -29,6 +29,11 @@ export class ExistingVoie extends ExistingLocation {
 
   @ApiProperty({ required: true, nullable: false })
   nom: string;
+
+  @ApiProperty({ required: false, nullable: true, type: Position })
+  @IsOptional()
+  @Type(() => Position)
+  position?: Position;
 }
 
 export class ExistingToponyme extends ExistingLocation {
