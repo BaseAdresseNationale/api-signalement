@@ -8,6 +8,8 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { entities } from './app.entities';
 import { migrations } from './migrations';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { migrations } from './migrations';
     SignalementModule,
     SourceModule,
     ClientModule,
+    ScheduleModule.forRoot(),
+    NotificationModule,
   ],
   controllers: [],
   providers: [],
