@@ -16,8 +16,8 @@ export class NotificationService {
     private configService: ConfigService,
   ) {}
 
-  // Cron job that runs every Monday at 10:00 AM
-  @Cron('0 10 * * 1')
+  // Cron job that runs every Tuesday at 10:00 AM
+  @Cron('0 10 * * 2')
   async weeklyPendingSignalementsReport() {
     this.logger.log('Start task : weeklyPendingSignalementsReport');
 
