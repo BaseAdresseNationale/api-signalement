@@ -223,4 +223,21 @@ export class SignalementService {
       ),
     };
   }
+
+  async getPendingSignalementsReport(): Promise<
+    { codeCommune: string; count: number }[]
+  > {
+    const qb = this.signalementRepository.createQueryBuilder('signalement');
+
+    const report = await qb
+      .select('code_commune', 'codeCommune')
+      .addSelect('COUNT(signalement.id)', 'count')
+      .where('signalement.status = :status', {
+        status: SignalementStatusEnum.PENDING,
+      })
+      .groupBy('code_commune')
+      .getRawMany();
+
+    return report as { codeCommune: string; count: number }[];
+  }
 }

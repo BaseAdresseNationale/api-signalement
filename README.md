@@ -78,6 +78,9 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | Nom de la variable          | Description                      |
 | --------------------------- | -------------------------------- |
 | `POSTGRES_URL`              | URL de connexion à PostgreSQL    |
+| `MES_ADRESSES_URL`          | URL de mes-adresses              |
+| `MES_ADRESSES_API_URL`      | URL de mes-adresses-api          |
+| `MES_ADRESSES_API_TOKEN`    | Token admin mes-adresses-api     |
 | `ADMIN_TOKEN`               | Token admin (à générer)          |
 | `FRIENDLY_CAPTCHA_SITE_KEY` | Site key Friendy Captcha         |
 | `FRIENDLY_CAPTCHA_SECRET`   | Secret Friendly Captcha          |
