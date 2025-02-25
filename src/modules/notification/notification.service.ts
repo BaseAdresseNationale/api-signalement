@@ -73,7 +73,8 @@ export class NotificationService {
 
         await this.mailerService.sendMail({
           to: email,
-          subject: 'Vous avez des signalements en attente',
+          subject:
+            "Des propositions d'améliorations ont été faites sur votre Base Adresse Locale",
           template: 'weekly-report',
           context: {
             count,
