@@ -1,7 +1,6 @@
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type, TypeHelpOptions } from 'class-transformer';
 import {
-  IsArray,
   IsDefined,
   IsEnum,
   IsNotEmpty,
@@ -142,11 +141,8 @@ export class PaginatedSignalementsDTO {
   @ApiProperty({
     required: true,
     nullable: false,
-    isArray: true,
-    type: Signalement,
+    type: () => [Signalement],
   })
-  @IsArray()
-  @Type(() => Array<Signalement>)
   data: Signalement[];
 
   @ApiProperty({ required: true, nullable: false, type: Number })
