@@ -17,7 +17,9 @@ describe('Client module', () => {
   let postgresClient: Client;
 
   beforeAll(async () => {
-    postgresContainer = await new PostgreSqlContainer().start();
+    postgresContainer = await new PostgreSqlContainer(
+      'postgis/postgis:12-3.0',
+    ).start();
 
     postgresClient = new Client({
       host: postgresContainer.getHost(),

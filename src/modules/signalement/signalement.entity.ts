@@ -99,11 +99,11 @@ export class Signalement extends BaseEntity {
   @Index('IDX_signalements_point', { spatial: true })
   @ApiProperty()
   @Column('geometry', {
-    nullable: false,
+    nullable: true,
     spatialFeatureType: 'Point',
     srid: 4326,
   })
-  point: Point;
+  point?: Point;
 
   constructor(createInput: CreateSignalementInput) {
     super();
