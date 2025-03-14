@@ -13,6 +13,7 @@ import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
 import { StatsController } from './stats.controller';
+import { SignalementTilesService } from './tiles/signalement-tiles.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { StatsController } from './stats.controller';
     ClientModule,
   ],
   controllers: [SignalementController, StatsController],
-  providers: [SignalementService],
+  providers: [SignalementService, SignalementTilesService],
   exports: [SignalementService],
 })
 export class SignalementModule {

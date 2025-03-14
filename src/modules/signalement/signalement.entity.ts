@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index, Point } from 'typeorm';
 import { BaseEntity } from '../../common/base.entity';
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import {
@@ -21,6 +21,7 @@ import {
   ToponymeChangesRequestedDTO,
   VoieChangesRequestedDTO,
 } from './dto/changes-requested.dto';
+import { getSignalementPosition } from './signalement.utils';
 
 @Entity('signalements')
 @ApiExtraModels(
@@ -95,6 +96,15 @@ export class Signalement extends BaseEntity {
   })
   processedBy?: Client;
 
+  @Index('IDX_signalements_point', { spatial: true })
+  @ApiProperty()
+  @Column('geometry', {
+    nullable: false,
+    spatialFeatureType: 'Point',
+    srid: 4326,
+  })
+  point: Point;
+
   constructor(createInput: CreateSignalementInput) {
     super();
     if (createInput) {
@@ -107,6 +117,7 @@ export class Signalement extends BaseEntity {
       this.existingLocation = existingLocation;
       this.status = SignalementStatusEnum.PENDING;
       this.type = type;
+      this.point = getSignalementPosition(this);
     }
   }
 }
