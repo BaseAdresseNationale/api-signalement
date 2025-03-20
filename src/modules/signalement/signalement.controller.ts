@@ -127,17 +127,25 @@ export class SignalementController {
   @ApiParam({ name: 'x', required: true, type: String })
   @ApiParam({ name: 'y', required: true, type: String })
   async getTiles(
+    @Query('sourceId') sourceId: string,
+    @Query('status') status: SignalementStatusEnum,
     @Req() req: Request,
     @Param('z') z: string,
     @Param('x') x: string,
     @Param('y') y: string,
     @Res() res: Response,
   ) {
-    const tiles = await this.signalementTilesService.getSignalementTiles({
-      z: parseInt(z),
-      x: parseInt(x),
-      y: parseInt(y),
-    });
+    const tiles = await this.signalementTilesService.getSignalementTiles(
+      {
+        z: parseInt(z),
+        x: parseInt(x),
+        y: parseInt(y),
+      },
+      {
+        sourceId,
+        status,
+      },
+    );
 
     if (!tiles) {
       return res.status(HttpStatus.NO_CONTENT).send();

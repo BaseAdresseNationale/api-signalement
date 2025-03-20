@@ -16,23 +16,23 @@ export class SignalementTilesService {
     private signalementService: SignalementService,
   ) {}
 
-  public async getSignalementTiles({
-    x,
-    y,
-    z,
-  }: {
-    x: number;
-    y: number;
-    z: number;
-  }): Promise<GeoJSONVT.Tile | null> {
+  public async getSignalementTiles(
+    {
+      x,
+      y,
+      z,
+    }: {
+      x: number;
+      y: number;
+      z: number;
+    },
+    filters: { sourceId?: string; status?: SignalementStatusEnum },
+  ): Promise<GeoJSONVT.Tile | null> {
     const bbox: number[] = tileToBBOX([x, y, z]);
 
     const pendingSignalements =
       z >= ZOOM.minZoom
-        ? await this.signalementService.findManyWhereInBBox(
-            bbox,
-            SignalementStatusEnum.PENDING,
-          )
+        ? await this.signalementService.findManyWhereInBBox(bbox, filters)
         : [];
 
     if (!pendingSignalements.length) {
