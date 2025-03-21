@@ -6,27 +6,21 @@ import { SourceModule } from './modules/source/source.module';
 import { ClientModule } from './modules/client/client.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
-import { entities } from './app.entities';
-import { migrations } from './migrations';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationModule } from './modules/notification/notification.module';
+import typeorm from './config/typeorm';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [typeorm],
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get('POSTGRES_URL'),
-        synchronize: config.get('SYNCHRONIZE_DB') === 'true',
-        keepConnectionAlive: true,
-        schema: 'public',
-        migrationsRun: true,
-        migrations,
-        entities,
-      }),
+      useFactory: async (configService: ConfigService) =>
+        configService.get('typeorm'),
     }),
     MailerModule.forRootAsync({
       imports: [ConfigModule],

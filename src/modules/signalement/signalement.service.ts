@@ -88,6 +88,30 @@ export class SignalementService {
     };
   }
 
+  async findManyWhereInBBox(
+    bbox: number[],
+    filters: { status?: SignalementStatusEnum },
+  ): Promise<Signalement[]> {
+    const qb = this.signalementRepository
+      .createQueryBuilder('signalement')
+      .leftJoinAndSelect('signalement.source', 'source')
+      .where(
+        'signalement.point @ ST_MakeEnvelope(:xmin, :ymin, :xmax, :ymax, 4326)',
+        {
+          xmin: bbox[0],
+          ymin: bbox[1],
+          xmax: bbox[2],
+          ymax: bbox[3],
+        },
+      );
+
+    if (filters.status) {
+      qb.andWhere('signalement.status = :status', { status: filters.status });
+    }
+
+    return qb.getMany();
+  }
+
   async createOne(
     sourceId: string,
     createSignalementDTO: CreateSignalementDTO,
