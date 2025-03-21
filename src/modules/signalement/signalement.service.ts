@@ -90,7 +90,7 @@ export class SignalementService {
 
   async findManyWhereInBBox(
     bbox: number[],
-    filters: { status?: SignalementStatusEnum; sourceId?: string },
+    filters: { status?: SignalementStatusEnum },
   ): Promise<Signalement[]> {
     const qb = this.signalementRepository
       .createQueryBuilder('signalement')
@@ -107,12 +107,6 @@ export class SignalementService {
 
     if (filters.status) {
       qb.andWhere('signalement.status = :status', { status: filters.status });
-    }
-
-    if (filters.sourceId) {
-      qb.andWhere('source.id = :sourceId', {
-        sourceId: filters.sourceId,
-      });
     }
 
     return qb.getMany();

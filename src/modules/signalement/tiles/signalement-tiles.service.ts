@@ -5,10 +5,6 @@ import * as turf from '@turf/turf';
 import * as GeoJSONVT from 'geojson-vt';
 import { tileToBBOX } from '@mapbox/tilebelt';
 
-const ZOOM = {
-  minZoom: 14,
-};
-
 @Injectable()
 export class SignalementTilesService {
   constructor(
@@ -26,14 +22,12 @@ export class SignalementTilesService {
       y: number;
       z: number;
     },
-    filters: { sourceId?: string; status?: SignalementStatusEnum },
+    filters: { status?: SignalementStatusEnum },
   ): Promise<GeoJSONVT.Tile | null> {
     const bbox: number[] = tileToBBOX([x, y, z]);
 
     const pendingSignalements =
-      z >= ZOOM.minZoom
-        ? await this.signalementService.findManyWhereInBBox(bbox, filters)
-        : [];
+      await this.signalementService.findManyWhereInBBox(bbox, filters);
 
     if (!pendingSignalements.length) {
       return null;
@@ -45,13 +39,12 @@ export class SignalementTilesService {
       return turf.feature(point, rest);
     });
 
-    const options = { maxZoom: 20 };
     const tiles = GeoJSONVT(
       {
         type: 'FeatureCollection',
         features: signalementGeoJSON,
       },
-      options,
+      { maxZoom: 20 },
     ).getTile(z, x, y);
 
     return tiles;

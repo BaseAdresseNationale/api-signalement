@@ -127,7 +127,6 @@ export class SignalementController {
   @ApiParam({ name: 'x', required: true, type: String })
   @ApiParam({ name: 'y', required: true, type: String })
   async getTiles(
-    @Query('sourceId') sourceId: string,
     @Query('status') status: SignalementStatusEnum,
     @Req() req: Request,
     @Param('z') z: string,
@@ -142,7 +141,6 @@ export class SignalementController {
         y: parseInt(y),
       },
       {
-        sourceId,
         status,
       },
     );
