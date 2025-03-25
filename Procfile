@@ -1,0 +1,1 @@
+postdeploy: bash scripts/post-deploy.sh
