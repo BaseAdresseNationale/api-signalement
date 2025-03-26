@@ -13,7 +13,11 @@ export const getSignalementPosition = (signalement: Signalement) => {
     position = (existingLocation as ExistingNumero).position?.point;
   }
 
-  if (position?.coordinates.every((coord) => coord !== null)) {
+  if (
+    position &&
+    position.coordinates.length === 2 &&
+    position.coordinates.every((coord) => coord !== null)
+  ) {
     return position;
   }
 };
