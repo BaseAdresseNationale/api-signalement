@@ -23,7 +23,9 @@ describe('Source module', () => {
   let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
-    postgresContainer = await new PostgreSqlContainer().start();
+    postgresContainer = await new PostgreSqlContainer(
+      'postgis/postgis:12-3.0',
+    ).start();
 
     postgresClient = new Client({
       host: postgresContainer.getHost(),

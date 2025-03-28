@@ -99,7 +99,9 @@ describe('Signalement module', () => {
   let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
-    postgresContainer = await new PostgreSqlContainer().start();
+    postgresContainer = await new PostgreSqlContainer(
+      'postgis/postgis:12-3.0',
+    ).start();
 
     postgresClient = new PGClient({
       host: postgresContainer.getHost(),
@@ -1111,6 +1113,10 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         id: expect.any(String),
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
         deletedAt: null,
@@ -1178,6 +1184,10 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         id: expect.any(String),
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
         deletedAt: null,
@@ -1233,6 +1243,10 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         id: expect.any(String),
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
         deletedAt: null,
