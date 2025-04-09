@@ -9,7 +9,7 @@ export class COGService {
     this.communeMap = (communes as Array<CommuneCOG>).reduce((acc, commune) => {
       acc[commune.code] = commune;
       return acc;
-    }, new Map());
+    }, {});
   }
 
   getCommuneByCode(code: string): CommuneCOG {
