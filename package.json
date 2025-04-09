@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@ban-team/validateur-bal": "^2.17.0",
-    "@etalab/decoupage-administratif": "^3.1.1",
+    "@etalab/decoupage-administratif": "^5.0.0",
     "@mapbox/tilebelt": "^1.0.2",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^3.0.2",

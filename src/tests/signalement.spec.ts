@@ -1412,7 +1412,9 @@ describe('Signalement module', () => {
 
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         context: {
-          signalement: expect.any(Object),
+          date: expect.any(String),
+          location: '2 bis Rue de la Paix - Abilly',
+          locationType: `l'adresse`,
         },
         to: 'test@test.com',
         subject: 'Votre signalement a bien été pris en compte',
