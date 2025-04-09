@@ -167,7 +167,12 @@ export class SignalementService {
       { withAuthor: true },
     );
 
-    if (author?.email) {
+    if (
+      author?.email &&
+      [SignalementStatusEnum.PROCESSED, SignalementStatusEnum.IGNORED].includes(
+        updatedSignalement.status,
+      )
+    ) {
       try {
         const commune = this.cogService.getCommuneByCode(
           updatedSignalement.codeCommune,
