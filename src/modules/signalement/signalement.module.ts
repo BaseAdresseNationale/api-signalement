@@ -14,14 +14,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
 import { StatsController } from './stats.controller';
 import { SignalementTilesService } from './tiles/signalement-tiles.service';
-import { COGModule } from '../cog/cog.module';
 
 @Module({
   imports: [
     forwardRef(() => TypeOrmModule.forFeature([Signalement])),
     SourceModule,
     ClientModule,
-    COGModule,
   ],
   controllers: [SignalementController, StatsController],
   providers: [SignalementService, SignalementTilesService],

@@ -1,4 +1,12 @@
-import { Entity, Column, ManyToOne, JoinColumn, Index, Point } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  Point,
+  AfterLoad,
+} from 'typeorm';
 import { BaseEntity } from '../../common/base.entity';
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import {
@@ -22,6 +30,7 @@ import {
   VoieChangesRequestedDTO,
 } from './dto/changes-requested.dto';
 import { getSignalementPosition } from './signalement.utils';
+import { getCommune } from '../../utils/cog.utils';
 
 @Entity('signalements')
 @ApiExtraModels(
@@ -38,6 +47,9 @@ export class Signalement extends BaseEntity {
   @ApiProperty({ required: true, nullable: false })
   @Column('text', { name: 'code_commune' })
   codeCommune: string;
+
+  @ApiProperty({ required: false, nullable: true, type: String })
+  nomCommune?: string;
 
   @Column('enum', { enum: SignalementTypeEnum, nullable: false })
   @ApiProperty({ required: true, nullable: false, enum: SignalementTypeEnum })
@@ -119,5 +131,10 @@ export class Signalement extends BaseEntity {
       this.type = type;
       this.point = getSignalementPosition(this);
     }
+  }
+
+  @AfterLoad()
+  getNomCommune?(): void {
+    this.nomCommune = getCommune(this.codeCommune)?.nom;
   }
 }
