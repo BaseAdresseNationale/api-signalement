@@ -26,7 +26,6 @@ import {
   getSignalementLocationLabel,
   getSignalementLocationTypeLabel,
 } from './signalement.utils';
-import { COGService } from '../cog/cog.service';
 
 @Injectable()
 export class SignalementService {
@@ -38,7 +37,6 @@ export class SignalementService {
     @Inject(forwardRef(() => ClientService))
     private readonly clientService: ClientService,
     private readonly mailerService: MailerService,
-    private readonly cogService: COGService,
   ) {}
 
   async findOneOrFail(
@@ -174,10 +172,6 @@ export class SignalementService {
       )
     ) {
       try {
-        const commune = this.cogService.getCommuneByCode(
-          updatedSignalement.codeCommune,
-        );
-
         await this.mailerService.sendMail({
           to: author.email,
           subject:
@@ -192,7 +186,7 @@ export class SignalementService {
             date: new Date(updatedSignalement.createdAt).toLocaleDateString(
               'fr-FR',
             ),
-            location: `${getSignalementLocationLabel(updatedSignalement)} - ${commune.nom}`,
+            location: `${getSignalementLocationLabel(updatedSignalement)} - ${updatedSignalement.nomCommune}`,
             locationType: getSignalementLocationTypeLabel(updatedSignalement),
           },
         });

@@ -28,11 +28,11 @@ const departementsIndex = keyBy(departements, 'code');
 
 const communesByDepartementIndex = groupBy(communes, 'departement');
 
-export function getCommunesByDepartement(codeDepartement) {
+export function getCommunesByDepartement(codeDepartement: string) {
   return communesByDepartementIndex[codeDepartement] || [];
 }
 
-export function getCommune(codeCommune) {
+export function getCommune(codeCommune: string) {
   return communesIndex[codeCommune];
 }
 
@@ -40,6 +40,6 @@ export function getCodesCommunes() {
   return (communes as CommuneCOG[]).map((c) => c.code);
 }
 
-export function getDepartement(codeDepartement) {
+export function getDepartement(codeDepartement: string) {
   return departementsIndex[codeDepartement];
 }

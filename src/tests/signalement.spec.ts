@@ -40,6 +40,7 @@ import { Source } from '../modules/source/source.entity';
 import { Client } from '../modules/client/client.entity';
 import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
+import { getCommune } from '../utils/cog.utils';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -48,9 +49,11 @@ const getSerializedSignalement = (
   withAuthor?: boolean,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { author, createdAt, updatedAt, ...rest } = signalement;
+  const { codeCommune, author, createdAt, updatedAt, ...rest } = signalement;
   return {
     ...rest,
+    codeCommune,
+    nomCommune: getCommune(codeCommune)?.nom,
     createdAt: new Date(createdAt).toISOString(),
     updatedAt:
       updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
@@ -1112,6 +1115,7 @@ describe('Signalement module', () => {
 
       expect(response.body).toEqual({
         ...createSignalementDTO,
+        nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),
@@ -1184,6 +1188,7 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         id: expect.any(String),
+        nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
         point: {
           coordinates: expect.any(Array),
           type: 'Point',
@@ -1243,6 +1248,7 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         id: expect.any(String),
+        nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
         point: {
           coordinates: expect.any(Array),
           type: 'Point',
