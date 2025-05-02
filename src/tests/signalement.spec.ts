@@ -1125,6 +1125,7 @@ describe('Signalement module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -1197,6 +1198,7 @@ describe('Signalement module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -1257,6 +1259,7 @@ describe('Signalement module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -1510,6 +1513,104 @@ describe('Signalement module', () => {
       );
 
       expect(mockMailerService.sendMail).not.toHaveBeenCalled();
+    });
+
+    it('should update a signalement with email notification and rejection reason', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: clientToken, ...client } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Mes adresses',
+        }),
+      );
+
+      const signalementEntity = new Signalement({
+        codeCommune: '37001',
+        author: {
+          email: 'test@test.com',
+        },
+        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        },
+        changesRequested: {
+          numero: 3,
+          suffixe: 'ter',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+          ],
+          parcelles: ['37003000BA0744', '37003000BA0743'],
+        } as NumeroChangesRequestedDTO,
+      });
+      signalementEntity.source = source;
+
+      const signalement = await createRecording(
+        signalementRepository,
+        signalementEntity,
+      );
+
+      const updateSignalementDTO: UpdateSignalementDTO = {
+        status: SignalementStatusEnum.IGNORED,
+        rejectionReason: 'Signalement non pertinent',
+      };
+
+      const response = await request(app.getHttpServer())
+        .put('/signalements/' + signalement.id)
+        .send(updateSignalementDTO)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual(
+        getSerializedSignalement(
+          {
+            ...signalement,
+            ...updateSignalementDTO,
+            updatedAt: expect.any(String),
+          },
+          source,
+          client,
+        ),
+      );
+
+      expect(mockMailerService.sendMail).toHaveBeenCalledWith({
+        context: {
+          date: expect.any(String),
+          location: '2 bis Rue de la Paix - Abilly',
+          locationType: "l'adresse",
+          rejectionReason: 'Signalement non pertinent',
+        },
+        subject: "Votre signalement n'a pas été pris en compte",
+        template: 'ignored',
+        to: 'test@test.com',
+      });
     });
   });
 });
