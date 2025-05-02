@@ -141,6 +141,7 @@ export class SignalementService {
     signalementId: string,
     updateSignalementDTO: UpdateSignalementDTO,
   ): Promise<Signalement> {
+    const { status, rejectionReason } = updateSignalementDTO;
     const client = await this.clientService.findOneOrFail(clientId);
 
     const signalement = await this.findOneOrFail(signalementId);
@@ -155,7 +156,8 @@ export class SignalementService {
     await this.signalementRepository.update(
       { id: signalementId },
       {
-        status: updateSignalementDTO.status,
+        status,
+        rejectionReason,
         processedBy: client,
       },
     );
@@ -188,6 +190,7 @@ export class SignalementService {
             ),
             location: `${getSignalementLocationLabel(updatedSignalement)} - ${updatedSignalement.nomCommune}`,
             locationType: getSignalementLocationTypeLabel(updatedSignalement),
+            rejectionReason,
           },
         });
       } catch (error) {

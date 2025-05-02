@@ -135,6 +135,9 @@ export class UpdateSignalementDTO {
   @ApiProperty({ required: true, nullable: false, enum: SignalementStatusEnum })
   @IsEnum(SignalementStatusEnum)
   status: SignalementStatusEnum;
+
+  @ApiProperty({ required: false })
+  rejectionReason?: string;
 }
 
 export class PaginatedSignalementsDTO {
