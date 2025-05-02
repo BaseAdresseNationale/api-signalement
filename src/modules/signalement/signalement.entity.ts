@@ -109,7 +109,7 @@ export class Signalement extends BaseEntity {
   processedBy?: Client;
 
   @ApiProperty({ required: false })
-  @Column('text', { name: 'rejection_reason' })
+  @Column('text', { name: 'rejection_reason', nullable: true })
   rejectionReason?: string;
 
   @Index('IDX_signalements_point', { spatial: true })
