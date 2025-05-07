@@ -67,7 +67,6 @@ describe('Notification module', () => {
         TestModule,
         ConfigModule.forFeature(async () => ({
           MES_ADRESSES_URL: 'http://localhost:3000',
-          NOTIFICATIONS_COMMUNE_WHITE_LIST: '37185',
         })),
       ],
       providers: [NotificationService],
@@ -86,8 +85,8 @@ describe('Notification module', () => {
       await app.get(NotificationService).weeklyPendingSignalementsReport();
 
       expect(getPendingSignalementsReportMock).toHaveBeenCalledTimes(1);
-      expect(searchBaseLocaleMock).toHaveBeenCalledTimes(1);
-      expect(sendMailMock).toHaveBeenCalledTimes(2);
+      expect(searchBaseLocaleMock).toHaveBeenCalledTimes(2);
+      expect(sendMailMock).toHaveBeenCalledTimes(4);
     });
   });
 });
