@@ -21,30 +21,12 @@ export class NotificationService {
   async weeklyPendingSignalementsReport() {
     this.logger.log('Start task : weeklyPendingSignalementsReport');
 
-    const whiteList = this.configService.get(
-      'NOTIFICATIONS_COMMUNE_WHITE_LIST',
-    );
-
-    if (!whiteList) {
-      this.logger.warn('No white list found');
-      return;
-    }
-
-    const parsedWhiteList = whiteList.split(',');
-
     // Get all pending signalement grouped by unique insee code with count
-
     const pendingSignalementsReport =
       await this.signalementService.getPendingSignalementsReport();
 
     for (const report of pendingSignalementsReport) {
       const { codeCommune, count } = report;
-      if (!parsedWhiteList.includes(codeCommune)) {
-        this.logger.warn(
-          `Commune ${codeCommune} is not in the white list, skipping`,
-        );
-        continue;
-      }
       const data = await this.mesAdressesAPIService.searchBaseLocale(
         undefined,
         undefined,
