@@ -9,6 +9,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationModule } from './modules/notification/notification.module';
 import typeorm from './config/typeorm';
+import { SettingModule } from './modules/setting/setting.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import typeorm from './config/typeorm';
     ClientModule,
     ScheduleModule.forRoot(),
     NotificationModule,
+    SettingModule,
   ],
   controllers: [],
   providers: [],
