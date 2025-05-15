@@ -190,6 +190,7 @@ export class SignalementService {
             ),
             location: `${getSignalementLocationLabel(updatedSignalement)} - ${updatedSignalement.nomCommune}`,
             locationType: getSignalementLocationTypeLabel(updatedSignalement),
+            commune: updatedSignalement.nomCommune,
             rejectionReason,
           },
         });
