@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './setting.entity';
 
-const COMMUNES_DISABLED_KEY = 'communes-disabled';
+export const COMMUNES_DISABLED_KEY = 'communes-disabled';
 
 @Injectable()
 export class SettingService {

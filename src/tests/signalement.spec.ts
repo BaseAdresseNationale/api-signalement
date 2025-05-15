@@ -41,6 +41,8 @@ import { Client } from '../modules/client/client.entity';
 import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
+import { Setting } from '../modules/setting/setting.entity';
+import { COMMUNES_DISABLED_KEY } from '../modules/setting/setting.service';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -100,6 +102,7 @@ describe('Signalement module', () => {
   let signalementRepository: Repository<Signalement>;
   let clientRepository: Repository<Client>;
   let sourceRepository: Repository<Source>;
+  let settingRepository: Repository<Setting>;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer(
@@ -141,6 +144,7 @@ describe('Signalement module', () => {
     signalementRepository = app.get(getRepositoryToken(Signalement));
     sourceRepository = app.get(getRepositoryToken(Source));
     clientRepository = app.get(getRepositoryToken(Client));
+    settingRepository = app.get(getRepositoryToken(Setting));
   });
 
   afterAll(async () => {
@@ -153,6 +157,7 @@ describe('Signalement module', () => {
     await signalementRepository.delete({});
     await sourceRepository.delete({});
     await clientRepository.delete({});
+    await settingRepository.delete({});
     mockMailerService.sendMail.mockClear();
   });
 
@@ -1075,6 +1080,14 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: COMMUNES_DISABLED_KEY,
+          content: [],
+        }),
+      );
+
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1136,6 +1149,14 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: COMMUNES_DISABLED_KEY,
+          content: [],
+        }),
+      );
+
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1209,6 +1230,13 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: COMMUNES_DISABLED_KEY,
+          content: [],
+        }),
+      );
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1267,6 +1295,54 @@ describe('Signalement module', () => {
         },
         status: SignalementStatusEnum.PENDING,
       });
+    });
+
+    it('should return a 400 error if the commune is disabled', async () => {
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: COMMUNES_DISABLED_KEY,
+          content: ['37001'],
+        }),
+      );
+
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const createSignalementDTO: CreateSignalementDTO = {
+        codeCommune: '37001',
+        type: SignalementTypeEnum.LOCATION_TO_DELETE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        } as ExistingNumero,
+        changesRequested: {
+          comment: 'à supprimer car doublon',
+        } as DeleteNumeroChangesRequestedDTO,
+      };
+
+      await request(app.getHttpServer())
+        .post(`/signalements?sourceId=${privateSource.id}`)
+        .send(createSignalementDTO)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
     });
   });
 

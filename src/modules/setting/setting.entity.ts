@@ -11,4 +11,13 @@ export class Setting extends BaseEntity {
   @Column('jsonb')
   @ApiProperty({ required: true, nullable: false })
   content: any;
+
+  constructor(input: { name: string; content: any }) {
+    super();
+    if (input) {
+      const { name, content } = input;
+      this.name = name;
+      this.content = content;
+    }
+  }
 }
