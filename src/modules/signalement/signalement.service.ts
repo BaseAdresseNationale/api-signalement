@@ -26,6 +26,7 @@ import {
   getSignalementLocationLabel,
   getSignalementLocationTypeLabel,
 } from './signalement.utils';
+import { SettingService } from '../setting/setting.service';
 
 @Injectable()
 export class SignalementService {
@@ -37,6 +38,7 @@ export class SignalementService {
     @Inject(forwardRef(() => ClientService))
     private readonly clientService: ClientService,
     private readonly mailerService: MailerService,
+    private readonly settingService: SettingService,
   ) {}
 
   async findOneOrFail(
@@ -125,6 +127,17 @@ export class SignalementService {
       Object.values(createSignalementDTO.author).every((v) => !v)
     ) {
       delete createSignalementDTO.author;
+    }
+
+    const codeCommune = createSignalementDTO.codeCommune;
+    const isCommuneDisabled =
+      await this.settingService.isCommuneDisabled(codeCommune);
+
+    if (isCommuneDisabled) {
+      throw new HttpException(
+        `Signalement disabled for commune ${codeCommune}`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const newSignalement = new Signalement(createSignalementDTO);
