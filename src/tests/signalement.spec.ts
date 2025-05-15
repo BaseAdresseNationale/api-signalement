@@ -1422,6 +1422,7 @@ describe('Signalement module', () => {
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         context: {
           date: expect.any(String),
+          commune: 'Abilly',
           location: '2 bis Rue de la Paix - Abilly',
           locationType: `l'adresse`,
         },
@@ -1603,6 +1604,7 @@ describe('Signalement module', () => {
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         context: {
           date: expect.any(String),
+          commune: 'Abilly',
           location: '2 bis Rue de la Paix - Abilly',
           locationType: "l'adresse",
           rejectionReason: 'Signalement non pertinent',
