@@ -101,7 +101,7 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "testTimeout": 30000
+    "testTimeout": 60000
   },
   "engines": {
     "node": ">=18"

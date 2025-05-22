@@ -1,3 +1,4 @@
+import { EnabledListKeys } from '../modules/setting/setting.type';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddSettings1747315664342 implements MigrationInterface {
@@ -15,9 +16,11 @@ export class AddSettings1747315664342 implements MigrationInterface {
       )`,
     );
 
-    await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('communes-disabled', '[]')`,
-    );
+    for (const key of Object.values(EnabledListKeys)) {
+      await queryRunner.query(
+        `INSERT INTO "settings" (name, content) VALUES ('${key}', '[]')`,
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

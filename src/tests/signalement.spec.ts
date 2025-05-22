@@ -42,7 +42,8 @@ import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
 import { Setting } from '../modules/setting/setting.entity';
-import { COMMUNES_DISABLED_KEY } from '../modules/setting/setting.service';
+import { ApiDepotService } from '../modules/api-depot/api-depot.service';
+import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -78,6 +79,24 @@ const getSerializedSignalement = (
     ...(withAuthor ? { author } : {}),
   };
 };
+
+const mockAPIDepotService = {
+  getCurrentRevision: jest.fn().mockResolvedValue({
+    context: {
+      extras: { balId: '614b3385e1d1f2602d7ad284' },
+    },
+  }),
+};
+@Module({
+  providers: [
+    {
+      provide: ApiDepotService,
+      useValue: mockAPIDepotService,
+    },
+  ],
+  exports: [ApiDepotService],
+})
+class MockedApiDepotModule {}
 
 const mockMailerService = {
   sendMail: jest.fn(),
@@ -134,7 +153,10 @@ describe('Signalement module', () => {
         MailerModule,
         SignalementModule,
       ],
-    }).compile();
+    })
+      .overrideModule(ApiDepotModule)
+      .useModule(MockedApiDepotModule)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
@@ -1080,14 +1102,6 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: COMMUNES_DISABLED_KEY,
-          content: [],
-        }),
-      );
-
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1149,14 +1163,6 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: COMMUNES_DISABLED_KEY,
-          content: [],
-        }),
-      );
-
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1230,13 +1236,6 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: COMMUNES_DISABLED_KEY,
-          content: [],
-        }),
-      );
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1301,8 +1300,10 @@ describe('Signalement module', () => {
       await createRecording(
         settingRepository,
         new Setting({
-          name: COMMUNES_DISABLED_KEY,
-          content: ['37001'],
+          name: `37001-settings`,
+          content: {
+            disabled: true,
+          },
         }),
       );
 
