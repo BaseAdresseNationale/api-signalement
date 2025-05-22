@@ -12,6 +12,7 @@ async function bootstrap() {
     .setTitle('API Signalement')
     .setDescription("API permettant de signaler des problèmes d'adressage")
     .setVersion('1.0')
+    .addServer(process.env.API_SIGNALEMENT_URL)
     .addBearerAuth(
       {
         description: `Please enter a valid source token`,

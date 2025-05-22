@@ -87,6 +87,7 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `SMTP_URL`                  | URL de connexion au serveur SMTP |
 | `SMTP_FROM`                 | Expéditeur SMTP                  |
 | `PORT`                      | Port de l'api                    |
+| `API_SIGNALEMENT_URL`       | Url de l'api                     |
 
 ## Licence
 
