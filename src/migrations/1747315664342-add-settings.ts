@@ -18,6 +18,12 @@ export class AddSettings1747315664342 implements MigrationInterface {
     await queryRunner.query(
       `INSERT INTO "settings" (name, content) VALUES ('communes-disabled', '[]')`,
     );
+    await queryRunner.query(
+      `INSERT INTO "settings" (name, content) VALUES ('api-depot-client-enabled', '[]')`,
+    );
+    await queryRunner.query(
+      `INSERT INTO "settings" (name, content) VALUES ('source-moissonneur-enabled', '[]')`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

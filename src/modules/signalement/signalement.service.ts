@@ -130,10 +130,12 @@ export class SignalementService {
     }
 
     const codeCommune = createSignalementDTO.codeCommune;
-    const isCommuneDisabled =
-      await this.settingService.isCommuneDisabled(codeCommune);
+    const communeStatus = await this.settingService.getCommuneStatus(
+      codeCommune,
+      sourceId,
+    );
 
-    if (isCommuneDisabled) {
+    if (communeStatus.disabled) {
       throw new HttpException(
         `Signalement disabled for commune ${codeCommune}`,
         HttpStatus.BAD_REQUEST,
