@@ -18,6 +18,6 @@ export class CommuneSettingsDTO {
   @IsEnum(SignalementSubmissionMode)
   mode?: SignalementSubmissionMode;
 
-  @ApiProperty({ required: true, nullable: false, type: [String] })
-  filteredSources: string[];
+  @ApiProperty({ required: false, nullable: true, type: [String] })
+  filteredSources?: string[];
 }

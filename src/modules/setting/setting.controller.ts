@@ -31,7 +31,7 @@ import { EnabledListDTO } from './dto/enabled-list.dto';
 export class SettingController {
   constructor(private settingService: SettingService) {}
 
-  @Get('communes-status/:codeCommune')
+  @Get('commune-status/:codeCommune')
   @ApiOperation({
     summary: 'Get the submission status of the given commune',
     operationId: 'getCommuneStatus',
@@ -54,7 +54,7 @@ export class SettingController {
     res.status(HttpStatus.OK).json(communeStatus);
   }
 
-  @Get('communes-settings/:codeCommune')
+  @Get('commune-settings/:codeCommune')
   @ApiOperation({
     summary: 'Get the communes settings for the given codeCommune',
     operationId: 'getCommuneSettings',
@@ -74,7 +74,7 @@ export class SettingController {
     res.status(HttpStatus.OK).json(communesSettings);
   }
 
-  @Post('communes-settings/:codeCommune')
+  @Post('commune-settings/:codeCommune')
   @ApiOperation({
     summary: 'Set the communes settings for the given codeCommune',
     operationId: 'setCommuneSettings',
@@ -95,6 +95,24 @@ export class SettingController {
     );
 
     res.status(HttpStatus.OK).json(settings);
+  }
+
+  @Get('enabled-list/:listKey/:id')
+  @ApiOperation({
+    summary:
+      'Check if the given id is in the enabled list for the given listKey',
+    operationId: 'isInEnabledList',
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: Boolean })
+  async isInEnabledList(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('listKey') listKey: EnabledListKeys,
+    @Param('id') id: string,
+  ) {
+    const isInList = await this.settingService.isInEnabledList(listKey, id);
+
+    res.status(HttpStatus.OK).json(isInList);
   }
 
   @Put('enabled-list/:listKey')

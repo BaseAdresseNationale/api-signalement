@@ -167,6 +167,20 @@ export class SettingService {
     await this.settingsRepository.save(setting);
   }
 
+  async isInEnabledList(key: EnabledListKeys, id: string): Promise<boolean> {
+    const setting = await this.settingsRepository.findOne({
+      where: { name: key },
+    });
+
+    if (!setting) {
+      throw new Error(`Setting ${key} not found`);
+    }
+
+    const enabledList = setting.content as string[];
+
+    return enabledList.includes(id);
+  }
+
   async updateEnabledList(
     key: EnabledListKeys,
     enabledListDTO: EnabledListDTO,

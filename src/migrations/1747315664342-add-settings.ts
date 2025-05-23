@@ -16,12 +16,11 @@ export class AddSettings1747315664342 implements MigrationInterface {
       )`,
     );
 
-    await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}', '[]')`,
-    );
-    await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('${EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED}', '[]')`,
-    );
+    Object.values(EnabledListKeys).forEach(async (key) => {
+      await queryRunner.query(
+        `INSERT INTO "settings" (name, content) VALUES ('${key}', '[]')`,
+      );
+    });
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
