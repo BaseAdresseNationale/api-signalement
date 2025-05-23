@@ -81,6 +81,7 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `MES_ADRESSES_URL`          | URL de mes-adresses              |
 | `MES_ADRESSES_API_URL`      | URL de mes-adresses-api          |
 | `MES_ADRESSES_API_TOKEN`    | Token admin mes-adresses-api     |
+| `API_DEPOT_URL`             | URL de l'API Dépôt               |
 | `ADMIN_TOKEN`               | Token admin (à générer)          |
 | `FRIENDLY_CAPTCHA_SITE_KEY` | Site key Friendy Captcha         |
 | `FRIENDLY_CAPTCHA_SECRET`   | Secret Friendly Captcha          |
