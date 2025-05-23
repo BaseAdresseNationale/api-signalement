@@ -16,8 +16,17 @@ import { ApiDepotService } from '../modules/api-depot/api-depot.service';
 import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 import { entities } from '../app.entities';
 import { SettingModule } from '../modules/setting/setting.module';
+import {
+  EnabledListKeys,
+  SignalementSubmissionMode,
+} from '../modules/setting/setting.type';
 
 const currentRevisionMock = jest.fn();
+
+const testSource = new Source({
+  nom: 'SIG Ville',
+  type: SourceTypeEnum.PRIVATE,
+});
 
 @Module({
   providers: [
@@ -100,14 +109,50 @@ describe('Setting module', () => {
         .expect(404);
     });
 
+    it('should return disabled if commune have disabled settings', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await request(app.getHttpServer())
+        .post(`/settings/communes-settings/37003`)
+        .send({
+          disabled: true,
+          message: 'Signalement disabled for commune 37003',
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: true,
+        message: expect.any(String),
+      });
+    });
+
+    it('should return disabled if commune have filtered sources', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await request(app.getHttpServer())
+        .post(`/settings/communes-settings/37003`)
+        .send({
+          filteredSources: [source.id],
+          message: 'Signalement disabled for commune 37003',
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: true,
+        message: expect.any(String),
+      });
+    });
+
     it('should return disabled if commune is assemblage', async () => {
-      const source = await createRecording(
-        sourceRepository,
-        new Source({
-          nom: 'SIG Ville',
-          type: SourceTypeEnum.PRIVATE,
-        }),
-      );
+      const source = await createRecording(sourceRepository, testSource);
 
       currentRevisionMock.mockResolvedValueOnce(null);
 
@@ -121,7 +166,176 @@ describe('Setting module', () => {
       });
     });
 
-    /*     it('should return disabled if commune is published from mes-adresses and have disabled settings', async () => {});
-     */
+    it('should return enabled if the commune is published from mes-adresses', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { balId: '614b3385e1d1f2602d7ad284' },
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: false,
+        mode: SignalementSubmissionMode.FULL,
+      });
+    });
+
+    it('should return enabled if the commune is published from mes-adresses and mode is set to light', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await request(app.getHttpServer())
+        .post(`/settings/communes-settings/37003`)
+        .send({
+          mode: SignalementSubmissionMode.LIGHT,
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { balId: '614b3385e1d1f2602d7ad284' },
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: false,
+        mode: SignalementSubmissionMode.LIGHT,
+      });
+    });
+
+    it('should return disabled if the commune is published by moissonneur and not in white list', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED,
+          content: [],
+        }),
+      );
+
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { sourceId: '614b3385e1d1f2602d7ad284' },
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: true,
+        message: expect.any(String),
+      });
+    });
+
+    it('should return enabled if the commune is published by moissonneur and in white list', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED,
+          content: [],
+        }),
+      );
+
+      const moissonneurSourceId = '614b3385e1d1f2602d7ad284';
+
+      await request(app.getHttpServer())
+        .put(
+          `/settings/enabled-list/${EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED}`,
+        )
+        .send({
+          id: moissonneurSourceId,
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { sourceId: moissonneurSourceId },
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: false,
+        mode: SignalementSubmissionMode.LIGHT,
+      });
+    });
+
+    it('should return disabled if the commune is published by api-depot and not in white list', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
+          content: [],
+        }),
+      );
+
+      currentRevisionMock.mockResolvedValueOnce({
+        client: {
+          id: '614b3385e1d1f2602d7ad284',
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: true,
+        message: expect.any(String),
+      });
+    });
+
+    it('should return enabled if the commune is published by api-depot and in white list', async () => {
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
+          content: [],
+        }),
+      );
+
+      const apiDepotClientId = '614b3385e1d1f2602d7ad284';
+
+      await request(app.getHttpServer())
+        .put(
+          `/settings/enabled-list/${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}`,
+        )
+        .send({
+          id: apiDepotClientId,
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      currentRevisionMock.mockResolvedValueOnce({
+        client: {
+          id: apiDepotClientId,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/communes-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: false,
+        mode: SignalementSubmissionMode.LIGHT,
+      });
+    });
   });
 });

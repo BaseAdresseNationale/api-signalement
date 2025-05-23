@@ -24,6 +24,7 @@ import { SettingService } from './setting.service';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { EnabledListKeys } from './setting.type';
+import { EnabledListDTO } from './dto/enabled-list.dto';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -101,7 +102,7 @@ export class SettingController {
     summary: 'Update the enabled list for the given listKey',
     operationId: 'updateEnabledList',
   })
-  @ApiBody({ type: String, required: true })
+  @ApiBody({ type: EnabledListDTO, required: true })
   @ApiResponse({ status: HttpStatus.OK, type: String })
   @ApiBearerAuth('admin-token')
   @UseGuards(AdminGuard)
@@ -109,11 +110,11 @@ export class SettingController {
     @Req() req: Request,
     @Res() res: Response,
     @Param('listKey') listKey: EnabledListKeys,
-    @Body() clientId: string,
+    @Body() enabledListDTO: EnabledListDTO,
   ) {
     const updatedList = await this.settingService.updateEnabledList(
-      clientId,
       listKey,
+      enabledListDTO,
     );
 
     res.status(HttpStatus.OK).json(updatedList);

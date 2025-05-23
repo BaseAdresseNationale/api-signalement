@@ -7,6 +7,7 @@ import { EnabledListKeys, SignalementSubmissionMode } from './setting.type';
 import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { SourceService } from '../source/source.service';
+import { EnabledListDTO } from './dto/enabled-list.dto';
 
 const ObjectIdRE = new RegExp('^[0-9a-fA-F]{24}$');
 
@@ -46,7 +47,7 @@ export class SettingService {
       };
     }
 
-    if (communesSettings?.filteredSources.includes(sourceId)) {
+    if (communesSettings?.filteredSources?.includes(sourceId)) {
       return {
         disabled: true,
         message:
@@ -69,17 +70,17 @@ export class SettingService {
 
     // If commune is published via mes-adresses, signalement is enabled
     if (
-      currentRevision?.context.extras?.balId &&
+      currentRevision?.context?.extras?.balId &&
       ObjectIdRE.test(currentRevision.context.extras.balId)
     ) {
       return {
         disabled: false,
-        mode: SignalementSubmissionMode.FULL,
+        mode: communesSettings?.mode || SignalementSubmissionMode.FULL,
       };
     }
 
     // If the commune is published via moissonneur, check if the source is in the white list
-    if (currentRevision?.context.extras?.sourceId) {
+    if (currentRevision?.context?.extras?.sourceId) {
       const moissonneurSourceWhiteList = await this.settingsRepository.findOne({
         where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
       });
@@ -106,7 +107,7 @@ export class SettingService {
     }
 
     // If the commune is published via API depot, check if the client is in the white list
-    if (currentRevision?.client.id) {
+    if (currentRevision?.client?.id) {
       const apiDepotClientEnabled = await this.settingsRepository.findOne({
         where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
       });
@@ -167,9 +168,10 @@ export class SettingService {
   }
 
   async updateEnabledList(
-    clientId: string,
     key: EnabledListKeys,
+    enabledListDTO: EnabledListDTO,
   ): Promise<void> {
+    const { id } = enabledListDTO;
     const setting = await this.settingsRepository.findOne({
       where: { name: key },
     });
@@ -180,14 +182,12 @@ export class SettingService {
 
     const enabledList = setting.content as string[];
 
-    if (!enabledList.includes(clientId)) {
-      enabledList.push(clientId);
+    if (!enabledList.includes(id)) {
+      enabledList.push(id);
       setting.content = enabledList;
       await this.settingsRepository.save(setting);
     } else {
-      const updatedEnabledList = enabledList.filter(
-        (client) => client !== clientId,
-      );
+      const updatedEnabledList = enabledList.filter((_id) => _id !== id);
       setting.content = updatedEnabledList;
       await this.settingsRepository.save(setting);
     }
