@@ -1,3 +1,4 @@
+import { EnabledListKeys } from '../modules/setting/setting.type';
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddSettings1747315664342 implements MigrationInterface {
@@ -16,13 +17,10 @@ export class AddSettings1747315664342 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('communes-disabled', '[]')`,
+      `INSERT INTO "settings" (name, content) VALUES ('${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}', '[]')`,
     );
     await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('api-depot-client-enabled', '[]')`,
-    );
-    await queryRunner.query(
-      `INSERT INTO "settings" (name, content) VALUES ('source-moissonneur-enabled', '[]')`,
+      `INSERT INTO "settings" (name, content) VALUES ('${EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED}', '[]')`,
     );
   }
 

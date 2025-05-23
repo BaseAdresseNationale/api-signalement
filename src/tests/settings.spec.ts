@@ -41,6 +41,8 @@ const testSource = new Source({
 })
 class MockedApiDepotModule {}
 
+const testObejctId = '614b3385e1d1f2602d7ad284';
+
 describe('Setting module', () => {
   let app: INestApplication;
   let postgresContainer: StartedPostgreSqlContainer;
@@ -170,7 +172,7 @@ describe('Setting module', () => {
       const source = await createRecording(sourceRepository, testSource);
       currentRevisionMock.mockResolvedValueOnce({
         context: {
-          extras: { balId: '614b3385e1d1f2602d7ad284' },
+          extras: { balId: testObejctId },
         },
       });
 
@@ -196,7 +198,7 @@ describe('Setting module', () => {
 
       currentRevisionMock.mockResolvedValueOnce({
         context: {
-          extras: { balId: '614b3385e1d1f2602d7ad284' },
+          extras: { balId: testObejctId },
         },
       });
 
@@ -222,7 +224,7 @@ describe('Setting module', () => {
 
       currentRevisionMock.mockResolvedValueOnce({
         context: {
-          extras: { sourceId: '614b3385e1d1f2602d7ad284' },
+          extras: { sourceId: testObejctId },
         },
       });
 
@@ -246,21 +248,19 @@ describe('Setting module', () => {
         }),
       );
 
-      const moissonneurSourceId = '614b3385e1d1f2602d7ad284';
-
       await request(app.getHttpServer())
         .put(
           `/settings/enabled-list/${EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED}`,
         )
         .send({
-          id: moissonneurSourceId,
+          id: testObejctId,
         })
         .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
         .expect(200);
 
       currentRevisionMock.mockResolvedValueOnce({
         context: {
-          extras: { sourceId: moissonneurSourceId },
+          extras: { sourceId: testObejctId },
         },
       });
 
@@ -286,7 +286,7 @@ describe('Setting module', () => {
 
       currentRevisionMock.mockResolvedValueOnce({
         client: {
-          id: '614b3385e1d1f2602d7ad284',
+          id: testObejctId,
         },
       });
 
@@ -310,21 +310,19 @@ describe('Setting module', () => {
         }),
       );
 
-      const apiDepotClientId = '614b3385e1d1f2602d7ad284';
-
       await request(app.getHttpServer())
         .put(
           `/settings/enabled-list/${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}`,
         )
         .send({
-          id: apiDepotClientId,
+          id: testObejctId,
         })
         .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
         .expect(200);
 
       currentRevisionMock.mockResolvedValueOnce({
         client: {
-          id: apiDepotClientId,
+          id: testObejctId,
         },
       });
 

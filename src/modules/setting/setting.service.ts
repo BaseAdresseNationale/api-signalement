@@ -64,7 +64,7 @@ export class SettingService {
       return {
         disabled: true,
         message:
-          'Les signalements ne peuvent pas être proposés sur cette commune car elle n&apos;a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la marie',
+          'Les signalements ne peuvent pas être proposés sur cette commune car elle n&apos;a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie',
       };
     }
 
