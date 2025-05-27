@@ -64,7 +64,7 @@ export class SettingService {
       return {
         disabled: true,
         message:
-          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie",
+          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie.",
       };
     }
 
@@ -101,7 +101,7 @@ export class SettingService {
         return {
           disabled: true,
           message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie',
+            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
         };
       }
     }
@@ -128,7 +128,7 @@ export class SettingService {
         return {
           disabled: true,
           message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie',
+            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
         };
       }
     }

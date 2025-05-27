@@ -6,18 +6,17 @@ export class CommuneSettingsDTO {
   @ApiProperty({ required: true, nullable: false })
   disabled: boolean;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: false })
   message?: string;
 
   @ApiProperty({
     required: false,
-    nullable: true,
     type: String,
     enum: SignalementSubmissionMode,
   })
   @IsEnum(SignalementSubmissionMode)
   mode?: SignalementSubmissionMode;
 
-  @ApiProperty({ required: false, nullable: true, type: [String] })
+  @ApiProperty({ required: false, type: [String] })
   filteredSources?: string[];
 }

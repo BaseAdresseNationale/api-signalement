@@ -6,12 +6,11 @@ export class CommuneStatusDTO {
   @ApiProperty({ required: true, nullable: false })
   disabled: boolean;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: false })
   message?: string;
 
   @ApiProperty({
     required: false,
-    nullable: true,
     type: String,
     enum: SignalementSubmissionMode,
   })
