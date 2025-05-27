@@ -43,7 +43,7 @@ export class SettingService {
         disabled: true,
         message:
           communesSettings.message ||
-          'La commune a demandé la désactivation du dépôt de signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
+          'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.',
       };
     }
 
@@ -51,7 +51,7 @@ export class SettingService {
       return {
         disabled: true,
         message:
-          'La commune a demandé la désactivation de la source depuis notre site. Nous vous recommandons de contacter directement la mairie.',
+          'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
       };
     }
 
