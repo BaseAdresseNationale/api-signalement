@@ -41,6 +41,9 @@ import { Client } from '../modules/client/client.entity';
 import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
+import { Setting } from '../modules/setting/setting.entity';
+import { ApiDepotService } from '../modules/api-depot/api-depot.service';
+import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 
 const getSerializedSignalement = (
   signalement: Signalement,
@@ -77,6 +80,24 @@ const getSerializedSignalement = (
   };
 };
 
+const mockAPIDepotService = {
+  getCurrentRevision: jest.fn().mockResolvedValue({
+    context: {
+      extras: { balId: '614b3385e1d1f2602d7ad284' },
+    },
+  }),
+};
+@Module({
+  providers: [
+    {
+      provide: ApiDepotService,
+      useValue: mockAPIDepotService,
+    },
+  ],
+  exports: [ApiDepotService],
+})
+class MockedApiDepotModule {}
+
 const mockMailerService = {
   sendMail: jest.fn(),
 };
@@ -100,6 +121,7 @@ describe('Signalement module', () => {
   let signalementRepository: Repository<Signalement>;
   let clientRepository: Repository<Client>;
   let sourceRepository: Repository<Source>;
+  let settingRepository: Repository<Setting>;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer(
@@ -131,7 +153,10 @@ describe('Signalement module', () => {
         MailerModule,
         SignalementModule,
       ],
-    }).compile();
+    })
+      .overrideModule(ApiDepotModule)
+      .useModule(MockedApiDepotModule)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
@@ -141,6 +166,7 @@ describe('Signalement module', () => {
     signalementRepository = app.get(getRepositoryToken(Signalement));
     sourceRepository = app.get(getRepositoryToken(Source));
     clientRepository = app.get(getRepositoryToken(Client));
+    settingRepository = app.get(getRepositoryToken(Setting));
   });
 
   afterAll(async () => {
@@ -153,6 +179,7 @@ describe('Signalement module', () => {
     await signalementRepository.delete({});
     await sourceRepository.delete({});
     await clientRepository.delete({});
+    await settingRepository.delete({});
     mockMailerService.sendMail.mockClear();
   });
 
@@ -1267,6 +1294,56 @@ describe('Signalement module', () => {
         },
         status: SignalementStatusEnum.PENDING,
       });
+    });
+
+    it('should return a 400 error if the commune is disabled', async () => {
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: `37001-settings`,
+          content: {
+            disabled: true,
+          },
+        }),
+      );
+
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const createSignalementDTO: CreateSignalementDTO = {
+        codeCommune: '37001',
+        type: SignalementTypeEnum.LOCATION_TO_DELETE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        } as ExistingNumero,
+        changesRequested: {
+          comment: 'à supprimer car doublon',
+        } as DeleteNumeroChangesRequestedDTO,
+      };
+
+      await request(app.getHttpServer())
+        .post(`/signalements?sourceId=${privateSource.id}`)
+        .send(createSignalementDTO)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(405);
     });
   });
 
