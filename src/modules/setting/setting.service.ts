@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './setting.entity';
@@ -175,7 +175,7 @@ export class SettingService {
     });
 
     if (!setting) {
-      throw new Error(`Setting ${key} not found`);
+      throw new NotFoundException(`Setting ${key} not found`);
     }
 
     const enabledList = setting.content as string[];
@@ -193,7 +193,7 @@ export class SettingService {
     });
 
     if (!setting) {
-      throw new Error(`Setting ${key} not found`);
+      throw new NotFoundException(`Setting ${key} not found`);
     }
 
     const enabledList = setting.content as string[];
