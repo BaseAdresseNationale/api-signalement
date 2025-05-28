@@ -1,22 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
-import { SignalementSubmissionMode } from '../setting.type';
+import { CommuneStatusDTO } from './commune-status.dto';
 
-export class CommuneSettingsDTO {
-  @ApiProperty({ required: true, nullable: false })
-  disabled: boolean;
-
-  @ApiProperty({ required: false })
-  message?: string;
-
-  @ApiProperty({
-    required: false,
-    type: String,
-    enum: SignalementSubmissionMode,
-  })
-  @IsEnum(SignalementSubmissionMode)
-  mode?: SignalementSubmissionMode;
-
+export class CommuneSettingsDTO extends CommuneStatusDTO {
   @ApiProperty({ required: false, type: [String] })
   filteredSources?: string[];
 }

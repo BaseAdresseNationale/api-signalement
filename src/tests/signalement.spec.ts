@@ -1343,7 +1343,7 @@ describe('Signalement module', () => {
         .post(`/signalements?sourceId=${privateSource.id}`)
         .send(createSignalementDTO)
         .set('Authorization', `Bearer ${token}`)
-        .expect(400);
+        .expect(405);
     });
   });
 

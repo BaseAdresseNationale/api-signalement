@@ -1,3 +1,4 @@
+// Used to set the signalement form (light or full) on the client application
 export enum SignalementSubmissionMode {
   FULL = 'FULL',
   LIGHT = 'LIGHT',

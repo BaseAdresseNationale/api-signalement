@@ -138,7 +138,7 @@ export class SignalementService {
     if (communeStatus.disabled) {
       throw new HttpException(
         `Signalement disabled for commune ${codeCommune}`,
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.METHOD_NOT_ALLOWED,
       );
     }
 
