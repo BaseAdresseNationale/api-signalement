@@ -16,7 +16,6 @@ export class TrimPipe implements PipeTransform {
       if (this.isObj(values[key])) {
         values[key] = this.trim(values[key]);
       } else if (typeof values[key] === 'string') {
-        console.log(`Trimming value for key: ${key}`);
         values[key] = values[key].trim();
       }
     });
