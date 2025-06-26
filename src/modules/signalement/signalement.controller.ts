@@ -10,6 +10,7 @@ import {
   Req,
   Res,
   UseGuards,
+  UsePipes,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SignalementService } from './signalement.service';
@@ -40,6 +41,7 @@ import { promisify } from 'util';
 import * as zlib from 'zlib';
 import * as vtpbf from 'vt-pbf';
 import { SignalementTilesService } from './tiles/signalement-tiles.service';
+import { TrimPipe } from '../../common/trim.pipe';
 
 const gzip = promisify(zlib.gzip);
 
@@ -175,6 +177,7 @@ export class SignalementController {
   @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('source-token')
   @UseGuards(SourceGuard)
+  @UsePipes(new TrimPipe())
   async createSignalement(
     @Req() req: Request & { source: { id: string } },
     @Body() createSignalementDTO: CreateSignalementDTO,
