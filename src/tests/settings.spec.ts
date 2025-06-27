@@ -186,21 +186,14 @@ describe('Setting module', () => {
       });
     });
 
-    it('should return enabled if the commune is published from mes-adresses and mode is set to light', async () => {
-      const source = await createRecording(sourceRepository, testSource);
-      await request(app.getHttpServer())
-        .post(`/settings/commune-settings/37003`)
-        .send({
-          mode: SignalementSubmissionMode.LIGHT,
-        })
-        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
-        .expect(200);
-
+    it('should return enabled if the commune is published from mes-adresses and commune has no custom config', async () => {
       currentRevisionMock.mockResolvedValueOnce({
         context: {
           extras: { balId: testObjectId },
         },
       });
+
+      const source = await createRecording(sourceRepository, testSource);
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -208,11 +201,17 @@ describe('Setting module', () => {
 
       expect(response.body).toEqual({
         disabled: false,
-        mode: SignalementSubmissionMode.LIGHT,
+        mode: SignalementSubmissionMode.FULL,
       });
     });
 
     it('should return disabled if the commune is published by moissonneur and not in white list', async () => {
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { sourceId: testObjectId },
+        },
+      });
+
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
         settingRepository,
@@ -221,12 +220,6 @@ describe('Setting module', () => {
           content: [],
         }),
       );
-
-      currentRevisionMock.mockResolvedValueOnce({
-        context: {
-          extras: { sourceId: testObjectId },
-        },
-      });
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -239,6 +232,12 @@ describe('Setting module', () => {
     });
 
     it('should return enabled if the commune is published by moissonneur and in white list', async () => {
+      currentRevisionMock.mockResolvedValueOnce({
+        context: {
+          extras: { sourceId: testObjectId },
+        },
+      });
+
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
         settingRepository,
@@ -258,12 +257,6 @@ describe('Setting module', () => {
         .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
         .expect(200);
 
-      currentRevisionMock.mockResolvedValueOnce({
-        context: {
-          extras: { sourceId: testObjectId },
-        },
-      });
-
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
         .expect(200);
@@ -275,6 +268,12 @@ describe('Setting module', () => {
     });
 
     it('should return disabled if the commune is published by api-depot and not in white list', async () => {
+      currentRevisionMock.mockResolvedValueOnce({
+        client: {
+          id: testObjectId,
+        },
+      });
+
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
         settingRepository,
@@ -283,12 +282,6 @@ describe('Setting module', () => {
           content: [],
         }),
       );
-
-      currentRevisionMock.mockResolvedValueOnce({
-        client: {
-          id: testObjectId,
-        },
-      });
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -301,6 +294,11 @@ describe('Setting module', () => {
     });
 
     it('should return enabled if the commune is published by api-depot and in white list', async () => {
+      currentRevisionMock.mockResolvedValueOnce({
+        client: {
+          id: testObjectId,
+        },
+      });
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
         settingRepository,
@@ -320,11 +318,39 @@ describe('Setting module', () => {
         .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
         .expect(200);
 
+      const response = await request(app.getHttpServer())
+        .get(`/settings/commune-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: false,
+        mode: SignalementSubmissionMode.LIGHT,
+      });
+    });
+
+    it('should return commune custom config if it is published by api-depot and not in white list', async () => {
       currentRevisionMock.mockResolvedValueOnce({
         client: {
           id: testObjectId,
         },
       });
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
+          content: [],
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .post(`/settings/commune-settings/37003`)
+        .send({
+          disabled: false,
+          mode: SignalementSubmissionMode.LIGHT,
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -333,6 +359,50 @@ describe('Setting module', () => {
       expect(response.body).toEqual({
         disabled: false,
         mode: SignalementSubmissionMode.LIGHT,
+      });
+    });
+
+    it('should return commune custom config if it is published by api-depot and in white list', async () => {
+      currentRevisionMock.mockResolvedValueOnce({
+        client: {
+          id: testObjectId,
+        },
+      });
+      const source = await createRecording(sourceRepository, testSource);
+      await createRecording(
+        settingRepository,
+        new Setting({
+          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
+          content: [],
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .post(`/settings/commune-settings/37003`)
+        .send({
+          disabled: true,
+          message: 'Signalement disabled for commune 37003',
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .put(
+          `/settings/enabled-list/${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}`,
+        )
+        .send({
+          id: testObjectId,
+        })
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/settings/commune-status/37003?sourceId=${source.id}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        disabled: true,
+        message: 'Signalement disabled for commune 37003',
       });
     });
   });

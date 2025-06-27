@@ -38,21 +38,27 @@ export class SettingService {
 
     const communesSettings = setting?.content as CommuneSettingsDTO;
 
-    if (communesSettings?.disabled) {
-      return {
-        disabled: true,
-        message:
-          communesSettings.message ||
-          'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.',
-      };
-    }
-
-    if (communesSettings?.filteredSources?.includes(sourceId)) {
-      return {
-        disabled: true,
-        message:
-          'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
-      };
+    if (communesSettings) {
+      if (communesSettings.disabled) {
+        return {
+          disabled: true,
+          message:
+            communesSettings.message ||
+            'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.',
+        };
+      } else if (communesSettings.filteredSources?.includes(sourceId)) {
+        return {
+          disabled: true,
+          message:
+            communesSettings.message ||
+            'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
+        };
+      } else {
+        return {
+          disabled: false,
+          mode: communesSettings.mode || SignalementSubmissionMode.FULL,
+        };
+      }
     }
 
     // Then get current revision to know how commune is published
@@ -75,7 +81,7 @@ export class SettingService {
     ) {
       return {
         disabled: false,
-        mode: communesSettings?.mode || SignalementSubmissionMode.FULL,
+        mode: SignalementSubmissionMode.FULL,
       };
     }
 
@@ -146,6 +152,20 @@ export class SettingService {
     });
 
     return (setting?.content as CommuneSettingsDTO) || null;
+  }
+
+  async deleteCommuneSettings(codeCommune: string): Promise<void> {
+    const key = this.getCommuneSettingsKey(codeCommune);
+
+    const setting = await this.settingsRepository.findOne({
+      where: { name: key },
+    });
+
+    if (!setting) {
+      throw new NotFoundException(`Setting for ${codeCommune} not found`);
+    }
+
+    await this.settingsRepository.remove(setting);
   }
 
   async setCommuneSettings(
