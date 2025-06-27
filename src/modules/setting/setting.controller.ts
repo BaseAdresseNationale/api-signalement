@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
@@ -72,6 +73,24 @@ export class SettingController {
       await this.settingService.getCommuneSettings(codeCommune);
 
     res.status(HttpStatus.OK).json(communesSettings);
+  }
+
+  @Delete('commune-settings/:codeCommune')
+  @ApiOperation({
+    summary: 'Delete commune settings for the given codeCommune',
+    operationId: 'deleteCommuneSettings',
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: Boolean })
+  @ApiBearerAuth('admin-token')
+  @UseGuards(AdminGuard)
+  async deleteCommuneSettings(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('codeCommune') codeCommune: string,
+  ) {
+    await this.settingService.deleteCommuneSettings(codeCommune);
+
+    res.status(HttpStatus.OK).json(true);
   }
 
   @Post('commune-settings/:codeCommune')
