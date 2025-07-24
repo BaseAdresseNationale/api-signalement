@@ -54,7 +54,11 @@ describe('Source module', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+      }),
+    );
     await app.init();
     sourceRepository = app.get(getRepositoryToken(Source));
   });
