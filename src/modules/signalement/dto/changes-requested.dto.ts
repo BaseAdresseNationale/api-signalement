@@ -1,15 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsOptional,
   IsArray,
   ArrayNotEmpty,
   ValidateNested,
+  IsNumber,
 } from 'class-validator';
 import { PositionDTO } from './position.dto';
 
 export class NumeroChangesRequestedDTO {
   @ApiProperty({ required: true, nullable: false, type: Number })
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
   numero: number;
 
   @ApiProperty({ required: false, nullable: false, type: String })
