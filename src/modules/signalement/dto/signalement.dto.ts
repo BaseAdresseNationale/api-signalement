@@ -69,7 +69,14 @@ export class CreateSignalementInput {
     const payload: CreateSignalementInput =
       type.object as CreateSignalementInput;
 
-    switch (payload.existingLocation?.type) {
+    if (
+      !payload.existingLocation &&
+      payload.type === SignalementTypeEnum.LOCATION_TO_CREATE
+    ) {
+      return;
+    }
+
+    switch (payload.existingLocation.type) {
       case ExistingLocationTypeEnum.NUMERO:
         return ExistingNumero;
       case ExistingLocationTypeEnum.TOPONYME:

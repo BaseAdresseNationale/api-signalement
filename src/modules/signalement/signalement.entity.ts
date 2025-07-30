@@ -59,7 +59,7 @@ export class Signalement extends BaseEntity {
   @ApiProperty({ required: false, nullable: true, type: Author })
   author?: Author;
 
-  @Column('jsonb', { name: 'existing_location' })
+  @Column('jsonb', { name: 'existing_location', nullable: true })
   @ApiProperty({
     required: false,
     nullable: true,
