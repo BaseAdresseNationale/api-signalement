@@ -26,7 +26,8 @@ export class FixNumeroStringInChangesRequested1753283848477
           );
 
           return queryRunner.query(
-            `UPDATE "signalements" SET "changes_requested" = jsonb_set("changes_requested", '{numero}', '${parseInt(numero, 10)}') WHERE id = '${id}'`,
+            `UPDATE "signalements" SET "changes_requested" = jsonb_set("changes_requested", '{numero}', $1) WHERE id = $2`,
+            [parseInt(numero, 10), id],
           );
         }
       }),
