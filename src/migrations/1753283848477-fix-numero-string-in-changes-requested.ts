@@ -1,6 +1,7 @@
 import { SignalementStatusEnum } from '../modules/signalement/signalement.types';
 import { Signalement } from '../modules/signalement/signalement.entity';
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import { NumeroChangesRequestedDTO } from '../modules/signalement/dto/changes-requested.dto';
 
 export class FixNumeroStringInChangesRequested1753283848477
   implements MigrationInterface
@@ -17,20 +18,27 @@ export class FixNumeroStringInChangesRequested1753283848477
 
     // Update all signalements with their point
     await Promise.all(
-      signalements.map(({ id, changesRequested }: { id: string; changesRequested: ChangesRequested }) => {
-        const { numero } = changesRequested;
+      signalements
+        .filter(
+          ({ changesRequested }) =>
+            (changesRequested as NumeroChangesRequestedDTO).numero &&
+            typeof (changesRequested as NumeroChangesRequestedDTO).numero ===
+              'string',
+        )
+        .map(({ id, changesRequested }: { id: string; changesRequested }) => {
+          const { numero } = changesRequested as NumeroChangesRequestedDTO;
 
-        if (numero && typeof numero === 'string') {
-          console.log(
-            `Signalement ${id} has a string numero, converting to number : ${numero}`,
-          );
+          if (numero && typeof numero === 'string') {
+            console.log(
+              `Signalement ${id} has a string numero, converting to number : ${numero}`,
+            );
 
-          return queryRunner.query(
-            `UPDATE "signalements" SET "changes_requested" = jsonb_set("changes_requested", '{numero}', $1) WHERE id = $2`,
-            [parseInt(numero, 10), id],
-          );
-        }
-      }),
+            return queryRunner.query(
+              `UPDATE "signalements" SET "changes_requested" = jsonb_set("changes_requested", '{numero}', $1) WHERE id = $2`,
+              [parseInt(numero, 10), id],
+            );
+          }
+        }),
     );
   }
 
