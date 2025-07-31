@@ -1,4 +1,7 @@
-import { NumeroChangesRequestedDTO } from './dto/changes-requested.dto';
+import {
+  NumeroChangesRequestedDTO,
+  ToponymeChangesRequestedDTO,
+} from './dto/changes-requested.dto';
 import {
   ExistingLocationTypeEnum,
   ExistingNumero,
@@ -79,4 +82,13 @@ export const getSignalementLocationLabel = (
     const existingLocationToponyme = existingLocation as ExistingVoie;
     return `${existingLocationToponyme.nom}`;
   }
+};
+
+export const isToponymeChangesRequested = (
+  changesRequested: any,
+): changesRequested is ToponymeChangesRequestedDTO => {
+  const { nom, parcelles, positions } =
+    changesRequested as ToponymeChangesRequestedDTO;
+
+  return nom && Array.isArray(parcelles) && Array.isArray(positions);
 };
