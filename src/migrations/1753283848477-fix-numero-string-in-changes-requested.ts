@@ -17,8 +17,8 @@ export class FixNumeroStringInChangesRequested1753283848477
 
     // Update all signalements with their point
     await Promise.all(
-      signalements.map(({ id, changesRequested }) => {
-        const { numero } = changesRequested as any;
+      signalements.map(({ id, changesRequested }: { id: string; changesRequested: ChangesRequested }) => {
+        const { numero } = changesRequested;
 
         if (numero && typeof numero === 'string') {
           console.log(
