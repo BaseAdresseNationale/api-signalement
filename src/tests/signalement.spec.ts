@@ -159,7 +159,11 @@ describe('Signalement module', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+      }),
+    );
     await app.init();
 
     // INIT MODEL
@@ -1215,6 +1219,83 @@ describe('Signalement module', () => {
 
       expect(response.body).toEqual({
         ...createSignalementDTO,
+        id: expect.any(String),
+        nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        rejectionReason: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+        status: SignalementStatusEnum.PENDING,
+      });
+    });
+
+    it("should cast the numero to type number with pipe if it's a string", async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const createSignalementDTO: CreateSignalementDTO = {
+        codeCommune: '37001',
+        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        } as ExistingNumero,
+        changesRequested: {
+          numero: '3' as unknown as number,
+          suffixe: 'ter',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+          ],
+          parcelles: ['37003000BA0744', '37003000BA0743'],
+          nomVoie: 'Rue de la Paix',
+        } as NumeroChangesRequestedDTO,
+      };
+
+      const response = await request(app.getHttpServer())
+        .post(`/signalements?sourceId=${privateSource.id}`)
+        .send(createSignalementDTO)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        ...createSignalementDTO,
+        changesRequested: {
+          ...createSignalementDTO.changesRequested,
+          numero: 3,
+        },
         id: expect.any(String),
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
         point: {
