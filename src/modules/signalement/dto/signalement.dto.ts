@@ -30,6 +30,7 @@ import {
   SignalementTypeEnum,
 } from '../signalement.types';
 import { Signalement } from '../signalement.entity';
+import { isToponymeChangesRequested } from '../signalement.utils';
 
 export class CreateSignalementInput {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -69,7 +70,14 @@ export class CreateSignalementInput {
     const payload: CreateSignalementInput =
       type.object as CreateSignalementInput;
 
-    switch (payload.existingLocation?.type) {
+    if (
+      !payload.existingLocation &&
+      payload.type === SignalementTypeEnum.LOCATION_TO_CREATE
+    ) {
+      return;
+    }
+
+    switch (payload.existingLocation.type) {
       case ExistingLocationTypeEnum.NUMERO:
         return ExistingNumero;
       case ExistingLocationTypeEnum.TOPONYME:
@@ -115,6 +123,9 @@ export class CreateSignalementInput {
       case SignalementTypeEnum.LOCATION_TO_DELETE:
         return DeleteNumeroChangesRequestedDTO;
       case SignalementTypeEnum.LOCATION_TO_CREATE:
+        if (isToponymeChangesRequested(payload.changesRequested)) {
+          return ToponymeChangesRequestedDTO;
+        }
         return NumeroChangesRequestedDTO;
       default:
         throw new Error('Invalid signalement type');

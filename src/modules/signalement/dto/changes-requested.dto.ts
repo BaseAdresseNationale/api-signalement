@@ -50,14 +50,11 @@ export class ToponymeChangesRequestedDTO {
   @IsArray()
   parcelles: string[];
 
-  @ApiProperty({
-    required: true,
-    nullable: false,
-    isArray: true,
-    type: PositionDTO,
-  })
+  @ApiProperty({ required: true, nullable: false, type: [PositionDTO] })
   @IsArray()
-  @Type(() => Array<PositionDTO>)
+  @ValidateNested({ each: true })
+  @ArrayNotEmpty()
+  @Type(() => PositionDTO)
   positions: PositionDTO[];
 
   @ApiProperty({ required: false, nullable: true, type: String })

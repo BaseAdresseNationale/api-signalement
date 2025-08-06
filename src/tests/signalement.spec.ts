@@ -1166,6 +1166,64 @@ describe('Signalement module', () => {
       });
     });
 
+    it('should create a signalement of type LOCATION_TO_CREATE without existing_location', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const createSignalementDTO: CreateSignalementDTO = {
+        codeCommune: '37001',
+        type: SignalementTypeEnum.LOCATION_TO_CREATE,
+        changesRequested: {
+          numero: 3,
+          suffixe: 'bis',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+          ],
+          parcelles: ['37003000BA0744', '37003000BA0743'],
+          nomVoie: 'Rue nouvelle',
+        } as NumeroChangesRequestedDTO,
+      };
+
+      const response = await request(app.getHttpServer())
+        .post(`/signalements?sourceId=${privateSource.id}`)
+        .send(createSignalementDTO)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        ...createSignalementDTO,
+        nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        id: expect.any(String),
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        rejectionReason: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+        status: SignalementStatusEnum.PENDING,
+        existingLocation: null,
+      });
+    });
+
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
       const { token, ...privateSource } = await createRecording(
         sourceRepository,
