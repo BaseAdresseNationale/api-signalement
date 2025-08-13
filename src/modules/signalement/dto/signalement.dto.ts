@@ -77,7 +77,7 @@ export class CreateSignalementInput {
       return;
     }
 
-    switch (payload.existingLocation.type) {
+    switch (payload.existingLocation?.type) {
       case ExistingLocationTypeEnum.NUMERO:
         return ExistingNumero;
       case ExistingLocationTypeEnum.TOPONYME:
