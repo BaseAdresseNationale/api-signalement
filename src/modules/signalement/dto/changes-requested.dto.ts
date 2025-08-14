@@ -7,6 +7,7 @@ import {
   ValidateNested,
   IsNumber,
   Validate,
+  ValidateIf,
 } from 'class-validator';
 import { PositionDTO } from './position.dto';
 import { ValidatorBal } from '../../../validators/bal.validator';
@@ -28,6 +29,7 @@ export class NumeroChangesRequestedDTO {
   nomVoie: string;
 
   @ApiProperty({ required: false, nullable: false, type: String })
+  @ValidateIf(({ nomComplement }) => Boolean(nomComplement))
   @Validate(ValidatorBal, ['voie_nom'])
   @IsOptional()
   nomComplement?: string;
