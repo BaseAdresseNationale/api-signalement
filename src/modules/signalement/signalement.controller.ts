@@ -42,6 +42,7 @@ import * as zlib from 'zlib';
 import * as vtpbf from 'vt-pbf';
 import { SignalementTilesService } from './tiles/signalement-tiles.service';
 import { TrimPipe } from '../../common/trim.pipe';
+import { ChangesRequested } from './schemas/changes-requested.schema';
 
 const gzip = promisify(zlib.gzip);
 
@@ -189,6 +190,20 @@ export class SignalementController {
     );
 
     res.status(HttpStatus.OK).json(newSignalement);
+  }
+
+  @Post('/validate-changes-requested')
+  @ApiOperation({
+    summary: 'Validate changes requested',
+    operationId: 'validateChangesRequested',
+  })
+  @ApiBody({ type: ChangesRequested, required: true })
+  @ApiResponse({ status: HttpStatus.OK })
+  async validateChangesRequested(
+    @Body() changesRequested: ChangesRequested,
+    @Res() res: Response,
+  ) {
+    res.status(HttpStatus.OK).json(changesRequested);
   }
 
   @Get('/:idSignalement')
