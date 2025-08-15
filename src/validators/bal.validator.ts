@@ -55,8 +55,6 @@ export class ValidatorBal implements ValidatorConstraintInterface {
   defaultMessage(args: ValidationArguments) {
     const { value, property } = args;
 
-    console.log('args', args);
-
     if (this.lastErrorCache[property].length > 0) {
       return this.lastErrorCache[property]
         .map((error) => `${property}:${error}`)
