@@ -42,9 +42,13 @@ const formatAdresseLabel = (
 export const getSignalementLocationTypeLabel = (
   signalement: Signalement,
 ): string => {
-  const { existingLocation, type } = signalement;
+  const { existingLocation, type, changesRequested } = signalement;
 
   if (type === SignalementTypeEnum.LOCATION_TO_CREATE) {
+    if (isToponymeChangesRequested(changesRequested)) {
+      return `le lieu-dit`;
+    }
+
     return `l'adresse`;
   }
 
@@ -66,6 +70,12 @@ export const getSignalementLocationLabel = (
   const { changesRequested, existingLocation, type } = signalement;
 
   if (type === SignalementTypeEnum.LOCATION_TO_CREATE) {
+    if (isToponymeChangesRequested(changesRequested)) {
+      const changesRequestedToponyme =
+        changesRequested as ToponymeChangesRequestedDTO;
+      return `${changesRequestedToponyme.nom}`;
+    }
+
     const changesRequestedNumero =
       changesRequested as NumeroChangesRequestedDTO;
     return `${formatAdresseLabel(changesRequestedNumero.numero, changesRequestedNumero.nomVoie, changesRequestedNumero.suffixe)}`;
@@ -85,7 +95,7 @@ export const getSignalementLocationLabel = (
 };
 
 export const isToponymeChangesRequested = (
-  changesRequested: any,
+  changesRequested: unknown,
 ): changesRequested is ToponymeChangesRequestedDTO => {
   const { nom, parcelles, positions } =
     changesRequested as ToponymeChangesRequestedDTO;
