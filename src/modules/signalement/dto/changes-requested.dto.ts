@@ -29,10 +29,18 @@ export class NumeroChangesRequestedDTO {
   nomVoie: string;
 
   @ApiProperty({ required: false, nullable: false, type: String })
+  @IsOptional()
+  banIdVoie?: string;
+
+  @ApiProperty({ required: false, nullable: false, type: String })
   @ValidateIf(({ nomComplement }) => Boolean(nomComplement))
   @Validate(ValidatorBal, ['voie_nom'])
   @IsOptional()
   nomComplement?: string;
+
+  @ApiProperty({ required: false, nullable: false, type: String })
+  @IsOptional()
+  banIdComplement?: string;
 
   @ApiProperty({ required: true, nullable: false, type: [String] })
   @Validate(ValidatorBal, ['cad_parcelles'])
