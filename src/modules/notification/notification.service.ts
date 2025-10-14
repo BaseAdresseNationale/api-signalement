@@ -4,6 +4,7 @@ import { SignalementService } from '../signalement/signalement.service';
 import { MesAdressesAPIService } from '../mes-adresses-api/mes-adresses-api.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
+import { getCommune } from '../../utils/cog.utils';
 
 @Injectable()
 export class NotificationService {
@@ -59,6 +60,7 @@ export class NotificationService {
             "Des propositions d'améliorations ont été faites sur votre Base Adresse Locale",
           template: 'weekly-report',
           context: {
+            nomCommune: getCommune(codeCommune)?.nom,
             count,
             balUrl: `${this.configService.get(
               'MES_ADRESSES_URL',
