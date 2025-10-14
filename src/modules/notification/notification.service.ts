@@ -4,7 +4,7 @@ import { SignalementService } from '../signalement/signalement.service';
 import { MesAdressesAPIService } from '../mes-adresses-api/mes-adresses-api.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
-import { getCommune } from 'src/utils/cog.utils';
+import { getCommune } from '../../utils/cog.utils';
 
 @Injectable()
 export class NotificationService {
