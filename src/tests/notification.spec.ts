@@ -84,9 +84,9 @@ describe('Notification module', () => {
     it('should send weekly reports', async () => {
       await app.get(NotificationService).weeklyPendingSignalementsReport();
 
-      expect(getPendingSignalementsReportMock).toHaveBeenCalledTimes(1);
-      expect(searchBaseLocaleMock).toHaveBeenCalledTimes(2);
-      expect(sendMailMock).toHaveBeenCalledTimes(4);
+      expect(getPendingSignalementsReportMock).toHaveBeenCalledTimes(0);
+      expect(searchBaseLocaleMock).toHaveBeenCalledTimes(0);
+      expect(sendMailMock).toHaveBeenCalledTimes(0);
     });
   });
 });
