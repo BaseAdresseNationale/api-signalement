@@ -20,6 +20,8 @@ export class NotificationService {
   // Cron job that runs every Tuesday at 10:00 AM
   @Cron('0 10 * * 2')
   async weeklyPendingSignalementsReport() {
+    return; // Temporarily disable the email sending
+
     this.logger.log('Start task : weeklyPendingSignalementsReport');
 
     // Get all pending signalement grouped by unique insee code with count
