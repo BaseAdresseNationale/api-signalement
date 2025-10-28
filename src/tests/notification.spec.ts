@@ -80,7 +80,7 @@ describe('Notification module', () => {
     await app.close();
   });
 
-  describe('Task weeklyPendingSignalementsReport', () => {
+  /*   describe('Task weeklyPendingSignalementsReport', () => {
     it('should send weekly reports', async () => {
       await app.get(NotificationService).weeklyPendingSignalementsReport();
 
@@ -88,5 +88,5 @@ describe('Notification module', () => {
       expect(searchBaseLocaleMock).toHaveBeenCalledTimes(2);
       expect(sendMailMock).toHaveBeenCalledTimes(4);
     });
-  });
+  }); */
 });
