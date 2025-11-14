@@ -17,7 +17,7 @@ import {
 import { MailerService } from '@nestjs-modules/mailer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import { SourceService } from '../source/source.service';
 import { ClientService } from '../client/client.service';
 import { getCols } from '../../utils/repository.utils';
@@ -217,6 +217,10 @@ export class SignalementService {
     }
 
     return updatedSignalement;
+  }
+
+  deleteOne(signalementId: string): Promise<DeleteResult> {
+    return this.signalementRepository.delete({ id: signalementId });
   }
 
   async getStats(): Promise<SignalementStatsDTO> {

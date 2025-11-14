@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SignalementService } from '../signalement/signalement.service';
 import { MesAdressesAPIService } from '../mes-adresses-api/mes-adresses-api.service';
 import { MailerService } from '@nestjs-modules/mailer';
@@ -7,8 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { getCommune } from '../../utils/cog.utils';
 
 @Injectable()
-export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
+export class TaskService {
+  private readonly logger = new Logger(TaskService.name);
 
   constructor(
     private readonly signalementService: SignalementService,
@@ -71,5 +71,31 @@ export class NotificationService {
     }
 
     this.logger.log('End task : weeklyPendingSignalementsReport');
+  }
+
+  @Cron(CronExpression.EVERY_WEEK)
+  async resetCommuneForWebinaire() {
+    if (!this.configService.get('RESET_COMMUNE_FOR_WEBINAIRE')) {
+      return;
+    }
+
+    this.logger.log('Start task : resetCommuneForWebinaire');
+
+    const signalementsToDelete = await this.signalementService.findMany(
+      {
+        codeCommune: this.configService.get('RESET_COMMUNE_FOR_WEBINAIRE'),
+      },
+      { page: 1, limit: 1000 },
+    );
+
+    for (const signalement of signalementsToDelete.data) {
+      await this.signalementService.deleteOne(signalement.id);
+    }
+
+    this.logger.log(
+      'End task : resetCommuneForWebinaire, deleted ' +
+        signalementsToDelete.data.length +
+        ' signalements',
+    );
   }
 }

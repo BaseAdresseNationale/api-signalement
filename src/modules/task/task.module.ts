@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { SignalementModule } from '../signalement/signalement.module';
-import { NotificationService } from './notification.service';
+import { TaskService } from './task.service';
 import { MesAdressesAPIModule } from '../mes-adresses-api/mes-adresses-api.module';
 import { ConfigModule } from '@nestjs/config';
 
@@ -10,7 +10,7 @@ import { ConfigModule } from '@nestjs/config';
     MesAdressesAPIModule,
     ConfigModule,
   ],
-  providers: [NotificationService],
-  exports: [NotificationService],
+  providers: [TaskService],
+  exports: [TaskService],
 })
-export class NotificationModule {}
+export class TaskModule {}

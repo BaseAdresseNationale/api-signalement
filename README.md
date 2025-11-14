@@ -75,20 +75,21 @@ $ yarn lint
 Cette application utilise des variables d'environnement pour sa configuration.
 Elles peuvent être définies classiquement ou en créant un fichier `.env` sur la base du modèle `.env.sample`.
 
-| Nom de la variable          | Description                      |
-| --------------------------- | -------------------------------- |
-| `POSTGRES_URL`              | URL de connexion à PostgreSQL    |
-| `MES_ADRESSES_URL`          | URL de mes-adresses              |
-| `MES_ADRESSES_API_URL`      | URL de mes-adresses-api          |
-| `MES_ADRESSES_API_TOKEN`    | Token admin mes-adresses-api     |
-| `API_DEPOT_URL`             | URL de l'API Dépôt               |
-| `ADMIN_TOKEN`               | Token admin (à générer)          |
-| `FRIENDLY_CAPTCHA_SITE_KEY` | Site key Friendy Captcha         |
-| `FRIENDLY_CAPTCHA_SECRET`   | Secret Friendly Captcha          |
-| `SMTP_URL`                  | URL de connexion au serveur SMTP |
-| `SMTP_FROM`                 | Expéditeur SMTP                  |
-| `PORT`                      | Port de l'api                    |
-| `API_SIGNALEMENT_URL`       | Url de l'api                     |
+| Nom de la variable            | Description                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_URL`                | URL de connexion à PostgreSQL                                                                               |
+| `MES_ADRESSES_URL`            | URL de mes-adresses                                                                                         |
+| `MES_ADRESSES_API_URL`        | URL de mes-adresses-api                                                                                     |
+| `MES_ADRESSES_API_TOKEN`      | Token admin mes-adresses-api                                                                                |
+| `API_DEPOT_URL`               | URL de l'API Dépôt                                                                                          |
+| `ADMIN_TOKEN`                 | Token admin (à générer)                                                                                     |
+| `FRIENDLY_CAPTCHA_SITE_KEY`   | Site key Friendy Captcha                                                                                    |
+| `FRIENDLY_CAPTCHA_SECRET`     | Secret Friendly Captcha                                                                                     |
+| `SMTP_URL`                    | URL de connexion au serveur SMTP                                                                            |
+| `SMTP_FROM`                   | Expéditeur SMTP                                                                                             |
+| `PORT`                        | Port de l'api                                                                                               |
+| `API_SIGNALEMENT_URL`         | Url de l'api                                                                                                |
+| `RESET_COMMUNE_FOR_WEBINAIRE` | Commune à réinitialiser toutes les semaines pour les webinaires (à paramétrer uniquement sur l'env de démo) |
 
 ## Licence
 

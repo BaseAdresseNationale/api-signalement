@@ -7,7 +7,7 @@ import { ClientModule } from './modules/client/client.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { ScheduleModule } from '@nestjs/schedule';
-import { NotificationModule } from './modules/notification/notification.module';
+import { TaskModule } from './modules/task/task.module';
 import typeorm from './config/typeorm';
 import { SettingModule } from './modules/setting/setting.module';
 
@@ -44,7 +44,7 @@ import { SettingModule } from './modules/setting/setting.module';
     SourceModule,
     ClientModule,
     ScheduleModule.forRoot(),
-    NotificationModule,
+    TaskModule,
     SettingModule,
   ],
   controllers: [],
