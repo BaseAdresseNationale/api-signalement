@@ -129,8 +129,8 @@ describe('Task module', () => {
   });
 
   afterEach(async () => {
-    await signalementRepository.delete({});
-    await sourceRepository.delete({});
+    await signalementRepository.deleteAll();
+    await sourceRepository.deleteAll();
   });
 
   describe('Task weeklyPendingSignalementsReport', () => {

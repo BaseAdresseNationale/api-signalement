@@ -180,10 +180,10 @@ describe('Signalement module', () => {
   });
 
   afterEach(async () => {
-    await signalementRepository.delete({});
-    await sourceRepository.delete({});
-    await clientRepository.delete({});
-    await settingRepository.delete({});
+    await signalementRepository.deleteAll();
+    await sourceRepository.deleteAll();
+    await clientRepository.deleteAll();
+    await settingRepository.deleteAll();
     mockMailerService.sendMail.mockClear();
   });
 

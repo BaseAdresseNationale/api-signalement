@@ -98,8 +98,8 @@ describe('Setting module', () => {
   });
 
   afterEach(async () => {
-    await sourceRepository.delete({});
-    await settingRepository.delete({});
+    await sourceRepository.deleteAll();
+    await settingRepository.deleteAll();
   });
 
   describe('GET settings/commune-status/:codeCommune', () => {

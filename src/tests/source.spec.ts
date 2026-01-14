@@ -70,7 +70,7 @@ describe('Source module', () => {
   });
 
   afterEach(async () => {
-    await sourceRepository.delete({});
+    await sourceRepository.deleteAll();
   });
 
   describe('POST /sources', () => {
