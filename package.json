@@ -31,6 +31,9 @@
     "typeorm:migration:run": "yarn typeorm migration:run -- -d ./src/config/typeorm.ts",
     "typeorm:migration:revert": "yarn typeorm migration:revert -- -d ./src/config/typeorm.ts"
   },
+  "resolutions": {
+    "cpu-features": "npm:noop3@13.8.1"
+  },
   "dependencies": {
     "@ban-team/validateur-bal": "^3.1.12",
     "@etalab/decoupage-administratif": "5.0.0",
@@ -96,6 +99,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@turf|kdbush|geokdbush|tinyqueue|geojson-vt|@mapbox)/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
@@ -104,6 +110,6 @@
     "testTimeout": 60000
   },
   "engines": {
-    "node": ">=18"
+    "node": "24"
   }
 }
