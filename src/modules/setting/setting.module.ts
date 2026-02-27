@@ -9,8 +9,8 @@ import { SourceModule } from '../source/source.module';
 @Module({
   imports: [
     forwardRef(() => TypeOrmModule.forFeature([Setting])),
-    ApiDepotModule,
-    SourceModule,
+    forwardRef(() => ApiDepotModule),
+    forwardRef(() => SourceModule),
   ],
   controllers: [SettingController],
   providers: [SettingService],

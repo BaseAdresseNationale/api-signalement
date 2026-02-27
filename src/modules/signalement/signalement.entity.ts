@@ -22,7 +22,7 @@ import {
   ExistingToponyme,
   ExistingVoie,
 } from './schemas/existing-location.schema';
-import { Author } from './schemas/author.schema';
+import { Author } from '../../common/schema/author.schema';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,
@@ -97,10 +97,10 @@ export class Signalement extends BaseEntity {
     persistence: false,
   })
   @JoinColumn({ name: 'source_id', referencedColumnName: 'id' })
-  @ApiProperty({ required: true, nullable: false, type: Source })
+  @ApiProperty({ required: true, nullable: false, type: () => Source })
   source: Source;
 
-  @ApiProperty({ required: false, nullable: true, type: Client })
+  @ApiProperty({ required: false, nullable: true, type: () => Client })
   @JoinColumn({ name: 'processed_by', referencedColumnName: 'id' })
   @ManyToOne(() => Client, (client) => client.processedSignalements, {
     eager: true,
@@ -127,7 +127,6 @@ export class Signalement extends BaseEntity {
       const { codeCommune, type, changesRequested, author, existingLocation } =
         createInput;
       this.codeCommune = codeCommune;
-      this.type = type;
       this.changesRequested = changesRequested;
       this.author = author;
       this.existingLocation = existingLocation;

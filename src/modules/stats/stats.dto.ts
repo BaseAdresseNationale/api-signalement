@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SignalementStatusEnum } from '../signalement.types';
+import { SignalementStatusEnum } from '../signalement/signalement.types';
 
 export class SignalementStatsDTO {
   @ApiProperty({ required: true, nullable: false, type: Number })

@@ -4,6 +4,7 @@ import { BaseEntity } from '../../common/base.entity';
 import { generateToken } from '../../utils/token.utils';
 import { Signalement } from '../signalement/signalement.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Alert } from '../alert/alert.entity';
 
 @Entity('clients')
 export class Client extends BaseEntity {
@@ -21,9 +22,20 @@ export class Client extends BaseEntity {
     required: false,
     nullable: true,
     default: [],
-    type: Array<Signalement>,
+    type: () => [Signalement],
   })
   processedSignalements?: Signalement[];
+
+  @OneToMany(() => Alert, (alert) => alert.processedBy, {
+    persistence: false,
+  })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    default: [],
+    type: () => [Alert],
+  })
+  processedAlerts?: Alert[];
 
   constructor(createInput: CreateClientDTO) {
     super();

@@ -5,6 +5,7 @@ import { generateToken } from '../../utils/token.utils';
 import { ApiProperty } from '@nestjs/swagger';
 import { SourceTypeEnum } from './source.types';
 import { Signalement } from '../signalement/signalement.entity';
+import { Alert } from '../alert/alert.entity';
 
 @Entity('sources')
 export class Source extends BaseEntity {
@@ -26,9 +27,20 @@ export class Source extends BaseEntity {
     required: false,
     nullable: true,
     default: [],
-    type: Array<Signalement>,
+    type: () => [Signalement],
   })
   signalements?: Signalement[];
+
+  @OneToMany(() => Alert, (alert) => alert.source, {
+    persistence: false,
+  })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    default: [],
+    type: () => [Alert],
+  })
+  alerts?: Alert[];
 
   constructor(createInput: CreateSourceDTO) {
     super();

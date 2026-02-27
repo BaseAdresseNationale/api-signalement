@@ -18,7 +18,7 @@ import {
   ExistingVoie,
 } from '../schemas/existing-location.schema';
 
-import { AuthorDTO, AuthorInput } from './author.dto';
+import { AuthorDTO, AuthorInput } from '../../../common/dto/author.dto';
 import {
   DeleteNumeroChangesRequestedDTO,
   NumeroChangesRequestedDTO,

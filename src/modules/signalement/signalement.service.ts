@@ -21,12 +21,12 @@ import { DeleteResult, Repository } from 'typeorm';
 import { SourceService } from '../source/source.service';
 import { ClientService } from '../client/client.service';
 import { getCols } from '../../utils/repository.utils';
-import { SignalementStatsDTO } from './dto/stats.dto';
 import {
   getSignalementLocationLabel,
   getSignalementLocationTypeLabel,
 } from './signalement.utils';
 import { SettingService } from '../setting/setting.service';
+import { SignalementStatsDTO } from '../stats/stats.dto';
 
 @Injectable()
 export class SignalementService {

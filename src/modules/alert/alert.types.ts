@@ -1,0 +1,12 @@
+export enum AlertTypeEnum {
+  MISSING_ADDRESS = 'MISSING_ADDRESS',
+  ROAD_PROBLEM = 'ROAD_PROBLEM',
+  OTHER = 'OTHER',
+}
+
+export enum AlertStatusEnum {
+  PENDING = 'PENDING',
+  IGNORED = 'IGNORED',
+  PROCESSED = 'PROCESSED',
+  EXPIRED = 'EXPIRED',
+}
