@@ -40,7 +40,7 @@ export class CreateAlertDTO {
   point: PositionCoordinatesDTO;
 
   @ApiProperty({ required: true, nullable: false, type: String })
-  content: string;
+  comment: string;
 
   @ApiProperty({ required: false, nullable: true, type: AuthorInput })
   @IsOptional()

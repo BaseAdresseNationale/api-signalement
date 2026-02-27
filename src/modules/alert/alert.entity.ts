@@ -54,8 +54,8 @@ export class Alert extends BaseEntity {
   @ApiProperty({ required: true, nullable: false, type: () => Source })
   source: Source;
 
-  @Column('text', { name: 'content' })
-  content: string;
+  @Column('text', { name: 'comment' })
+  comment: string;
 
   @ApiProperty({ required: false, nullable: true, type: () => Client })
   @JoinColumn({ name: 'processed_by', referencedColumnName: 'id' })
@@ -68,13 +68,13 @@ export class Alert extends BaseEntity {
   constructor(createInput: CreateAlertDTO) {
     super();
     if (createInput) {
-      const { codeCommune, type, author, point, content } = createInput;
+      const { codeCommune, type, author, point, comment } = createInput;
       this.codeCommune = codeCommune;
       this.author = author;
       this.status = AlertStatusEnum.PENDING;
       this.type = type;
       this.point = point;
-      this.content = content;
+      this.comment = comment;
     }
   }
 

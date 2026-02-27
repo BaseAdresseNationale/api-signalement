@@ -27,7 +27,7 @@ export class AddAlerts1772184337212 implements MigrationInterface {
         "author" jsonb,
         "status" "alerts_status_enum" NOT NULL,
         "source_id" UUID NOT NULL,
-        "content" text NOT NULL,
+        "comment" text NOT NULL,
         "processed_by" UUID,
         CONSTRAINT "FK_alerts_source_id" FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
         CONSTRAINT "FK_alerts_processed_by" FOREIGN KEY (processed_by) REFERENCES clients(id) ON DELETE NO ACTION ON UPDATE NO ACTION
