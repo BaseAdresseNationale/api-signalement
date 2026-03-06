@@ -31,6 +31,7 @@ import {
 } from '../signalement.types';
 import { Signalement } from '../signalement.entity';
 import { isToponymeChangesRequested } from '../signalement.utils';
+import { PaginatedResult } from '../../../common/dto/paginated-result.dto';
 
 export class CreateSignalementInput {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -151,20 +152,11 @@ export class UpdateSignalementDTO {
   rejectionReason?: string;
 }
 
-export class PaginatedSignalementsDTO {
+export class PaginatedSignalementsDTO extends PaginatedResult<Signalement> {
   @ApiProperty({
     required: true,
     nullable: false,
     type: () => [Signalement],
   })
-  data: Signalement[];
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  page: number;
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  limit: number;
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  total: number;
+  declare data: Signalement[];
 }

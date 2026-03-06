@@ -13,6 +13,7 @@ import { AlertStatusEnum, AlertTypeEnum } from './alert.types';
 import { AuthorInput } from '../../common/dto/author.dto';
 import { Alert } from './alert.entity';
 import { PositionCoordinatesDTO } from '../../common/dto/position.dto';
+import { PaginatedResult } from '../../common/dto/paginated-result.dto';
 
 export class CreateAlertDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -50,22 +51,13 @@ export class CreateAlertDTO {
   author?: AuthorInput;
 }
 
-export class PaginatedAlertsDTO {
+export class PaginatedAlertsDTO extends PaginatedResult<Alert> {
   @ApiProperty({
     required: true,
     nullable: false,
     type: () => [Alert],
   })
-  data: Alert[];
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  page: number;
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  limit: number;
-
-  @ApiProperty({ required: true, nullable: false, type: Number })
-  total: number;
+  declare data: Alert[];
 }
 
 export class UpdateAlertDTO {

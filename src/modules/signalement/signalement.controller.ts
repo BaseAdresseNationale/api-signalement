@@ -137,7 +137,7 @@ export class SignalementController {
     @Param('y') y: string,
     @Res() res: Response,
   ) {
-    const tiles = await this.signalementTilesService.getSignalementTiles(
+    const tiles = await this.signalementTilesService.getTiles(
       {
         z: parseInt(z),
         x: parseInt(x),

@@ -1,230 +1,84 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  forwardRef,
-} from '@nestjs/common';
-import {
-  SignalementStatusEnum,
-  SignalementTypeEnum,
-} from './signalement.types';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { SignalementStatusEnum } from './signalement.types';
 import {
   CreateSignalementDTO,
-  PaginatedSignalementsDTO,
   UpdateSignalementDTO,
 } from './dto/signalement.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
-import { DeleteResult, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { SourceService } from '../source/source.service';
 import { ClientService } from '../client/client.service';
-import { getCols } from '../../utils/repository.utils';
 import {
   getSignalementLocationLabel,
   getSignalementLocationTypeLabel,
 } from './signalement.utils';
 import { SettingService } from '../setting/setting.service';
 import { SignalementStatsDTO } from '../stats/stats.dto';
+import {
+  BaseReportService,
+  CreateReportDTO,
+  UpdateReportDTO,
+} from '../../common/base-report.service';
 
 @Injectable()
-export class SignalementService {
+export class SignalementService extends BaseReportService<Signalement> {
   constructor(
     @InjectRepository(Signalement)
-    private readonly signalementRepository: Repository<Signalement>,
+    signalementRepository: Repository<Signalement>,
     @Inject(forwardRef(() => SourceService))
-    private readonly sourceService: SourceService,
+    sourceService: SourceService,
     @Inject(forwardRef(() => ClientService))
-    private readonly clientService: ClientService,
-    private readonly mailerService: MailerService,
-    private readonly settingService: SettingService,
-  ) {}
-
-  async findOneOrFail(
-    id: string,
-    options?: { withAuthor?: boolean },
-  ): Promise<Signalement> {
-    const { withAuthor = false } = options || {};
-    const signalement = await this.signalementRepository.findOne({
-      where: { id },
-      relations: ['source', 'processedBy'],
-      ...(withAuthor && {
-        select: getCols(this.signalementRepository),
-      }),
-    });
-
-    if (!signalement) {
-      throw new HttpException('Signalement not found', HttpStatus.NOT_FOUND);
-    }
-
-    return signalement;
+    clientService: ClientService,
+    mailerService: MailerService,
+    settingService: SettingService,
+  ) {
+    super(
+      signalementRepository,
+      sourceService,
+      clientService,
+      mailerService,
+      settingService,
+    );
   }
 
-  async findMany(
-    filters: {
-      codeCommune?: string;
-      source?: string;
-      type?: SignalementTypeEnum;
-      status?: SignalementStatusEnum;
-    },
-    pagination: {
-      page: number;
-      limit: number;
-    },
-  ): Promise<PaginatedSignalementsDTO> {
-    const [signalements, total] = await this.signalementRepository.findAndCount(
-      {
-        where: {
-          ...filters,
-          ...(filters.source && { source: { id: filters.source } }),
-        },
-        relations: ['source', 'processedBy'],
-        order: { createdAt: 'DESC' },
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
-      },
-    );
+  protected get entityName(): string {
+    return 'Signalement';
+  }
 
+  protected get entityAlias(): string {
+    return 'signalement';
+  }
+
+  protected createEntity(createDTO: CreateReportDTO): Signalement {
+    return new Signalement(createDTO as CreateSignalementDTO);
+  }
+
+  protected getExtraUpdateFields(
+    updateDTO: UpdateReportDTO,
+  ): Partial<Record<string, any>> {
+    const { rejectionReason } = updateDTO as UpdateSignalementDTO;
+    return rejectionReason !== undefined ? { rejectionReason } : {};
+  }
+
+  protected buildEmailContext(
+    entity: Omit<Signalement, 'author'>,
+  ): Record<string, any> {
+    // Cast needed because Omit removes knowledge of Signalement-specific fields,
+    // but the entity still has them at runtime
+    const signalement = entity as Signalement;
     return {
-      data: signalements,
-      total,
-      page: pagination.page,
-      limit: pagination.limit,
+      date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
+      location: `${getSignalementLocationLabel(signalement)} - ${entity.nomCommune}`,
+      locationType: getSignalementLocationTypeLabel(signalement),
+      commune: entity.nomCommune,
+      rejectionReason: signalement.rejectionReason,
     };
   }
 
-  async findManyWhereInBBox(
-    bbox: number[],
-    filters: { status?: SignalementStatusEnum },
-  ): Promise<Signalement[]> {
-    const qb = this.signalementRepository
-      .createQueryBuilder('signalement')
-      .leftJoinAndSelect('signalement.source', 'source')
-      .where(
-        'signalement.point @ ST_MakeEnvelope(:xmin, :ymin, :xmax, :ymax, 4326)',
-        {
-          xmin: bbox[0],
-          ymin: bbox[1],
-          xmax: bbox[2],
-          ymax: bbox[3],
-        },
-      );
-
-    if (filters.status) {
-      qb.andWhere('signalement.status = :status', { status: filters.status });
-    }
-
-    return qb.getMany();
-  }
-
-  async createOne(
-    sourceId: string,
-    createSignalementDTO: CreateSignalementDTO,
-  ): Promise<Signalement> {
-    if (
-      createSignalementDTO.author &&
-      Object.values(createSignalementDTO.author).every((v) => !v)
-    ) {
-      delete createSignalementDTO.author;
-    }
-
-    const codeCommune = createSignalementDTO.codeCommune;
-    const communeStatus = await this.settingService.getCommuneStatus(
-      codeCommune,
-      sourceId,
-    );
-
-    if (communeStatus.disabled) {
-      throw new HttpException(
-        `Signalement disabled for commune ${codeCommune}`,
-        HttpStatus.METHOD_NOT_ALLOWED,
-      );
-    }
-
-    const newSignalement = new Signalement(createSignalementDTO);
-    const source = await this.sourceService.findOneOrFail(sourceId);
-    newSignalement.source = source;
-
-    await this.signalementRepository.save(newSignalement);
-
-    return this.findOneOrFail(newSignalement.id);
-  }
-
-  async updateOne(
-    clientId: string,
-    signalementId: string,
-    updateSignalementDTO: UpdateSignalementDTO,
-  ): Promise<Signalement> {
-    const { status, rejectionReason } = updateSignalementDTO;
-    const client = await this.clientService.findOneOrFail(clientId);
-
-    const signalement = await this.findOneOrFail(signalementId);
-
-    if (signalement.status !== SignalementStatusEnum.PENDING) {
-      throw new HttpException(
-        'Signalement already processed, cannot be updated',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    await this.signalementRepository.update(
-      { id: signalementId },
-      {
-        status,
-        rejectionReason,
-        processedBy: client,
-      },
-    );
-
-    const { author, ...updatedSignalement } = await this.findOneOrFail(
-      signalementId,
-      { withAuthor: true },
-    );
-
-    if (
-      author?.email &&
-      [SignalementStatusEnum.PROCESSED, SignalementStatusEnum.IGNORED].includes(
-        updatedSignalement.status,
-      )
-    ) {
-      try {
-        await this.mailerService.sendMail({
-          to: author.email,
-          subject:
-            updatedSignalement.status === SignalementStatusEnum.PROCESSED
-              ? 'Votre signalement a bien été pris en compte'
-              : "Votre signalement n'a pas été pris en compte",
-          template:
-            updatedSignalement.status === SignalementStatusEnum.PROCESSED
-              ? 'processed'
-              : 'ignored',
-          context: {
-            date: new Date(updatedSignalement.createdAt).toLocaleDateString(
-              'fr-FR',
-            ),
-            location: `${getSignalementLocationLabel(updatedSignalement)} - ${updatedSignalement.nomCommune}`,
-            locationType: getSignalementLocationTypeLabel(updatedSignalement),
-            commune: updatedSignalement.nomCommune,
-            rejectionReason,
-          },
-        });
-      } catch (error) {
-        console.error(
-          `An error occured while sending email to ${author.email}: ${error.message}`,
-        );
-      }
-    }
-
-    return updatedSignalement;
-  }
-
-  deleteOne(signalementId: string): Promise<DeleteResult> {
-    return this.signalementRepository.delete({ id: signalementId });
-  }
-
   async getStats(): Promise<SignalementStatsDTO> {
-    const qb = this.signalementRepository.createQueryBuilder('signalement');
+    const qb = this.repository.createQueryBuilder('signalement');
 
     const signalementCount = await qb.getCount();
 
@@ -287,7 +141,7 @@ export class SignalementService {
   async getPendingSignalementsReport(): Promise<
     { codeCommune: string; count: number }[]
   > {
-    const qb = this.signalementRepository.createQueryBuilder('signalement');
+    const qb = this.repository.createQueryBuilder('signalement');
 
     const report = await qb
       .select('code_commune', 'codeCommune')

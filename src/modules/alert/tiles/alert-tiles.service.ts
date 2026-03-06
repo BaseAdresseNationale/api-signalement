@@ -1,54 +1,22 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
-import * as turf from '@turf/turf';
-import * as GeoJSONVT from 'geojson-vt';
-import { tileToBBOX } from '@mapbox/tilebelt';
 import { AlertService } from '../alert.service';
-import { AlertStatusEnum } from '../alert.types';
+import { Alert } from '../alert.entity';
+import { BaseReportTilesService } from '../../../common/base-report-tiles.service';
+import { ReportStatusEnum } from '../../../common/report-status.enum';
 
 @Injectable()
-export class AlertTilesService {
+export class AlertTilesService extends BaseReportTilesService<Alert> {
   constructor(
     @Inject(forwardRef(() => AlertService))
     private alertService: AlertService,
-  ) {}
+  ) {
+    super();
+  }
 
-  public async getAlertTiles(
-    {
-      x,
-      y,
-      z,
-    }: {
-      x: number;
-      y: number;
-      z: number;
-    },
-    filters: { status?: AlertStatusEnum },
-  ): Promise<GeoJSONVT.Tile | null> {
-    const bbox: number[] = tileToBBOX([x, y, z]);
-
-    const pendingAlerts = await this.alertService.findManyWhereInBBox(
-      bbox,
-      filters,
-    );
-
-    if (!pendingAlerts.length) {
-      return null;
-    }
-
-    const alertGeoJSON = pendingAlerts.map((alert) => {
-      const { point, ...rest } = alert;
-
-      return turf.feature(point, rest);
-    });
-
-    const tiles = GeoJSONVT(
-      {
-        type: 'FeatureCollection',
-        features: alertGeoJSON,
-      },
-      { maxZoom: 20 },
-    ).getTile(z, x, y);
-
-    return tiles;
+  protected findManyWhereInBBox(
+    bbox: number[],
+    filters: { status?: ReportStatusEnum },
+  ): Promise<Alert[]> {
+    return this.alertService.findManyWhereInBBox(bbox, filters);
   }
 }

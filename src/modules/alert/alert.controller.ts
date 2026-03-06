@@ -131,7 +131,7 @@ export class AlertController {
     @Param('y') y: string,
     @Res() res: Response,
   ) {
-    const tiles = await this.alertTilesService.getAlertTiles(
+    const tiles = await this.alertTilesService.getTiles(
       {
         z: parseInt(z),
         x: parseInt(x),

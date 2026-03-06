@@ -1679,6 +1679,7 @@ describe('Signalement module', () => {
           commune: 'Abilly',
           location: '2 bis Rue de la Paix - Abilly',
           locationType: `l'adresse`,
+          rejectionReason: null,
         },
         to: 'test@test.com',
         subject: 'Votre signalement a bien été pris en compte',
