@@ -47,6 +47,7 @@ export abstract class BaseReportService<
 
   /** Retourne les champs supplémentaires à passer au `repository.update()` */
   protected getExtraUpdateFields(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _updateDTO: UpdateReportDTO,
   ): Partial<Record<string, any>> {
     return {};
