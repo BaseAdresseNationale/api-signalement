@@ -12,6 +12,7 @@ import typeorm from './config/typeorm';
 import { SettingModule } from './modules/setting/setting.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { AlertModule } from './modules/alert/alert.module';
+import { TilesModule } from './modules/tiles/tiles.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AlertModule } from './modules/alert/alert.module';
     TaskModule,
     SettingModule,
     AlertModule,
+    TilesModule,
     StatsModule,
   ],
   controllers: [],

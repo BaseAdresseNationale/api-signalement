@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { SignalementService } from '../signalement/signalement.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AlertService } from '../alert/alert.service';
-import { SignalementStatsDTO } from './stats.dto';
+import { CombinedStatsDTO } from './stats.dto';
 
 @Controller('stats')
 @ApiTags('stats')
@@ -20,14 +20,14 @@ export class StatsController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    type: SignalementStatsDTO,
+    type: CombinedStatsDTO,
   })
   async getStats(@Res() res: Response) {
     const signalementStats = await this.signalementService.getStats();
-    // const alertStats = await this.alertService.getStats();
+    const alertStats = await this.alertService.getStats();
     const stats = {
-      ...signalementStats,
-      // ...alertStats,
+      signalementStats,
+      alertStats,
     };
 
     res.status(HttpStatus.OK).json(stats);

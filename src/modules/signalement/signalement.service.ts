@@ -15,12 +15,12 @@ import {
   getSignalementLocationTypeLabel,
 } from './signalement.utils';
 import { SettingService } from '../setting/setting.service';
-import { SignalementStatsDTO } from '../stats/stats.dto';
 import {
   BaseReportService,
   CreateReportDTO,
   UpdateReportDTO,
 } from '../../common/base-report.service';
+import { StatsDTO } from '../stats/stats.dto';
 
 @Injectable()
 export class SignalementService extends BaseReportService<Signalement> {
@@ -77,7 +77,7 @@ export class SignalementService extends BaseReportService<Signalement> {
     };
   }
 
-  async getStats(): Promise<SignalementStatsDTO> {
+  async getStats(): Promise<StatsDTO> {
     const qb = this.repository.createQueryBuilder('signalement');
 
     const signalementCount = await qb.getCount();

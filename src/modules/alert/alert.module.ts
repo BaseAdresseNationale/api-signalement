@@ -13,7 +13,6 @@ import { SettingModule } from '../setting/setting.module';
 import { Alert } from './alert.entity';
 import { AlertController } from './alert.controller';
 import { AlertService } from './alert.service';
-import { AlertTilesService } from './tiles/alert-tiles.service';
 
 @Module({
   imports: [
@@ -23,7 +22,7 @@ import { AlertTilesService } from './tiles/alert-tiles.service';
     forwardRef(() => SettingModule),
   ],
   controllers: [AlertController],
-  providers: [AlertService, AlertTilesService],
+  providers: [AlertService],
   exports: [AlertService],
 })
 export class AlertModule {

@@ -12,7 +12,6 @@ import { ClientModule } from '../client/client.module';
 import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
-import { SignalementTilesService } from './tiles/signalement-tiles.service';
 import { SettingModule } from '../setting/setting.module';
 
 @Module({
@@ -23,7 +22,7 @@ import { SettingModule } from '../setting/setting.module';
     forwardRef(() => SettingModule),
   ],
   controllers: [SignalementController],
-  providers: [SignalementService, SignalementTilesService],
+  providers: [SignalementService],
   exports: [SignalementService],
 })
 export class SignalementModule {

@@ -37,22 +37,13 @@ import { ClientGuard } from '../client/client.guard';
 import { Signalement } from './signalement.entity';
 import { In } from 'typeorm';
 import { Client } from '../client/client.entity';
-import { promisify } from 'util';
-import * as zlib from 'zlib';
-import * as vtpbf from 'vt-pbf';
-import { SignalementTilesService } from './tiles/signalement-tiles.service';
 import { TrimPipe } from '../../common/trim.pipe';
 import { ChangesRequested } from './schemas/changes-requested.schema';
-
-const gzip = promisify(zlib.gzip);
 
 @Controller('signalements')
 @ApiTags('signalements')
 export class SignalementController {
-  constructor(
-    private signalementService: SignalementService,
-    private signalementTilesService: SignalementTilesService,
-  ) {}
+  constructor(private signalementService: SignalementService) {}
 
   @Get('')
   @ApiOperation({
@@ -119,49 +110,6 @@ export class SignalementController {
     );
 
     res.status(HttpStatus.OK).json(signalements);
-  }
-
-  @Get('/tiles/:z/:x/:y.pbf')
-  @ApiOperation({
-    summary: 'Get tiles (with signalements features)',
-    operationId: 'getTiles',
-  })
-  @ApiParam({ name: 'z', required: true, type: String })
-  @ApiParam({ name: 'x', required: true, type: String })
-  @ApiParam({ name: 'y', required: true, type: String })
-  async getTiles(
-    @Query('status') status: SignalementStatusEnum,
-    @Req() req: Request,
-    @Param('z') z: string,
-    @Param('x') x: string,
-    @Param('y') y: string,
-    @Res() res: Response,
-  ) {
-    const tiles = await this.signalementTilesService.getTiles(
-      {
-        z: parseInt(z),
-        x: parseInt(x),
-        y: parseInt(y),
-      },
-      {
-        status,
-      },
-    );
-
-    if (!tiles) {
-      return res.status(HttpStatus.NO_CONTENT).send();
-    }
-
-    const pbf = vtpbf.fromGeojsonVt({ signalements: tiles });
-
-    const compressedPbf = await gzip(Buffer.from(pbf));
-
-    return res
-      .set({
-        'Content-Type': 'application/x-protobuf',
-        'Content-Encoding': 'gzip',
-      })
-      .send(compressedPbf);
   }
 
   @Post('')

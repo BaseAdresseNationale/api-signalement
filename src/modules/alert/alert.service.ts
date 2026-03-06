@@ -11,6 +11,8 @@ import {
   CreateReportDTO,
 } from '../../common/base-report.service';
 import { CreateAlertDTO } from './alert.dto';
+import { AlertStatusEnum } from './alert.types';
+import { StatsDTO } from '../stats/stats.dto';
 
 @Injectable()
 export class AlertService extends BaseReportService<Alert> {
@@ -51,6 +53,64 @@ export class AlertService extends BaseReportService<Alert> {
     return {
       date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
       commune: entity.nomCommune,
+    };
+  }
+
+  async getStats(): Promise<StatsDTO> {
+    const qb = this.repository.createQueryBuilder('alert');
+
+    const alertCount = await qb.getCount();
+
+    const alertsBySources: Array<{
+      count: number;
+      source: string;
+      status: AlertStatusEnum;
+    }> = await qb
+      .select('source.nom', 'source')
+      .addSelect('COUNT(alert.id)', 'count')
+      .addSelect('alert.status', 'status')
+      .groupBy('source.id')
+      .addGroupBy('alert.status')
+      .leftJoin('alert.source', 'source')
+      .getRawMany();
+
+    const alertsProcessedByClients: Array<{
+      count: number;
+      client: string | null;
+      status: AlertStatusEnum;
+    }> = await qb
+      .select('client.nom', 'client')
+      .addSelect('COUNT(alert.id)', 'count')
+      .addSelect('alert.status', 'status')
+      .groupBy('client.id')
+      .addGroupBy('alert.status')
+      .leftJoin('alert.processedBy', 'client')
+      .getRawMany();
+
+    return {
+      total: alertCount,
+      fromSources: alertsBySources.reduce((acc, { source, count, status }) => {
+        if (!acc[source]) {
+          acc[source] = {};
+        }
+        acc[source][status] = count;
+
+        return acc;
+      }, {}),
+      processedBy: alertsProcessedByClients.reduce(
+        (acc, { client, count, status }) => {
+          if (!client) {
+            return acc;
+          }
+          if (!acc[client]) {
+            acc[client] = {};
+          }
+          acc[client][status] = count;
+
+          return acc;
+        },
+        {},
+      ),
     };
   }
 }

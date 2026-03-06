@@ -28,9 +28,6 @@ import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
 import { In } from 'typeorm';
 import { Client } from '../client/client.entity';
-import { promisify } from 'util';
-import * as zlib from 'zlib';
-import * as vtpbf from 'vt-pbf';
 import { TrimPipe } from '../../common/trim.pipe';
 import { Alert } from './alert.entity';
 import {
@@ -39,17 +36,11 @@ import {
   UpdateAlertDTO,
 } from './alert.dto';
 import { AlertService } from './alert.service';
-import { AlertTilesService } from './tiles/alert-tiles.service';
-
-const gzip = promisify(zlib.gzip);
 
 @Controller('alerts')
 @ApiTags('alerts')
 export class AlertController {
-  constructor(
-    private alertService: AlertService,
-    private alertTilesService: AlertTilesService,
-  ) {}
+  constructor(private alertService: AlertService) {}
 
   @Get('')
   @ApiOperation({
@@ -113,49 +104,6 @@ export class AlertController {
     const alerts = await this.alertService.findMany(filters, pagination);
 
     res.status(HttpStatus.OK).json(alerts);
-  }
-
-  @Get('/tiles/:z/:x/:y.pbf')
-  @ApiOperation({
-    summary: 'Get tiles (with alerts features)',
-    operationId: 'getTiles',
-  })
-  @ApiParam({ name: 'z', required: true, type: String })
-  @ApiParam({ name: 'x', required: true, type: String })
-  @ApiParam({ name: 'y', required: true, type: String })
-  async getTiles(
-    @Query('status') status: AlertStatusEnum,
-    @Req() req: Request,
-    @Param('z') z: string,
-    @Param('x') x: string,
-    @Param('y') y: string,
-    @Res() res: Response,
-  ) {
-    const tiles = await this.alertTilesService.getTiles(
-      {
-        z: parseInt(z),
-        x: parseInt(x),
-        y: parseInt(y),
-      },
-      {
-        status,
-      },
-    );
-
-    if (!tiles) {
-      return res.status(HttpStatus.NO_CONTENT).send();
-    }
-
-    const pbf = vtpbf.fromGeojsonVt({ alerts: tiles });
-
-    const compressedPbf = await gzip(Buffer.from(pbf));
-
-    return res
-      .set({
-        'Content-Type': 'application/x-protobuf',
-        'Content-Encoding': 'gzip',
-      })
-      .send(compressedPbf);
   }
 
   @Post('')
