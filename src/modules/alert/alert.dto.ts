@@ -14,6 +14,7 @@ import { AuthorInput } from '../../common/dto/author.dto';
 import { Alert } from './alert.entity';
 import { PositionCoordinatesDTO } from '../../common/dto/position.dto';
 import { PaginatedResult } from '../../common/dto/paginated-result.dto';
+import { MissingAddressContext } from './schemas/alert-context.schema';
 
 export class CreateAlertDTO {
   @ApiProperty({ required: true, nullable: false, type: String })
@@ -49,6 +50,13 @@ export class CreateAlertDTO {
   @ValidateNested()
   @Type(() => AuthorInput)
   author?: AuthorInput;
+
+  @ApiProperty({ required: false, nullable: true, type: MissingAddressContext })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MissingAddressContext)
+  context?: MissingAddressContext;
 }
 
 export class PaginatedAlertsDTO extends PaginatedResult<Alert> {

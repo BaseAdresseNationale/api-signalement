@@ -9,6 +9,7 @@ import * as request from 'supertest';
 import { SourceTypeEnum } from '../modules/source/source.types';
 import { AlertStatusEnum, AlertTypeEnum } from '../modules/alert/alert.types';
 import { CreateAlertDTO, UpdateAlertDTO } from '../modules/alert/alert.dto';
+import { MissingAddressContext } from '../modules/alert/schemas/alert-context.schema';
 import { MailerService } from '@nestjs-modules/mailer';
 import { AlertModule } from '../modules/alert/alert.module';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
@@ -180,6 +181,7 @@ describe('Alert module', () => {
       comment: string;
       author: { email?: string; firstName?: string; lastName?: string };
       status: AlertStatusEnum;
+      context: MissingAddressContext;
     }>,
   ): Alert => {
     const alertEntity = new Alert({
@@ -191,6 +193,7 @@ describe('Alert module', () => {
       } as any,
       comment: overrides?.comment ?? 'Adresse manquante sur la rue principale',
       author: overrides?.author,
+      context: overrides?.context,
     });
     alertEntity.source = source;
     if (overrides?.status) {
@@ -220,36 +223,15 @@ describe('Alert module', () => {
         }),
       );
 
-      const alert2 = await createRecording(
-        alertRepository,
-        createAlertEntity(source, {
-          codeCommune: '37003',
-          type: AlertTypeEnum.ROAD_PROBLEM,
-          comment: 'Problème de voirie',
-        }),
-      );
-
-      const alert3 = await createRecording(
-        alertRepository,
-        createAlertEntity(source, {
-          codeCommune: '37003',
-          type: AlertTypeEnum.OTHER,
-          comment: 'Autre remarque',
-          author: { email: 'test2@test.com' },
-        }),
-      );
-
       const response = await request(app.getHttpServer())
         .get('/alerts')
         .expect(200);
 
-      const data = [alert3, alert2, alert1].map((alert) =>
-        getSerializedAlert(alert, source),
-      );
+      const data = [alert1].map((alert) => getSerializedAlert(alert, source));
 
       expect(response.body).toEqual({
         data,
-        total: 3,
+        total: 1,
         page: 1,
         limit: 20,
       });
@@ -420,22 +402,6 @@ describe('Alert module', () => {
         }),
       );
 
-      await createRecording(
-        alertRepository,
-        createAlertEntity(source, {
-          type: AlertTypeEnum.ROAD_PROBLEM,
-          comment: 'Road problem',
-        }),
-      );
-
-      await createRecording(
-        alertRepository,
-        createAlertEntity(source, {
-          type: AlertTypeEnum.OTHER,
-          comment: 'Other',
-        }),
-      );
-
       const response = await request(app.getHttpServer())
         .get('/alerts?types=' + AlertTypeEnum.MISSING_ADDRESS)
         .expect(200);
@@ -583,98 +549,7 @@ describe('Alert module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
-        source: {
-          ...privateSource,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        },
-        status: AlertStatusEnum.PENDING,
-      });
-    });
-
-    it('should create an alert of type ROAD_PROBLEM', async () => {
-      const { token, ...privateSource } = await createRecording(
-        sourceRepository,
-        new Source({
-          nom: 'Pifomètre',
-          type: SourceTypeEnum.PRIVATE,
-        }),
-      );
-
-      const createAlertDTO: CreateAlertDTO = {
-        codeCommune: '37001',
-        type: AlertTypeEnum.ROAD_PROBLEM,
-        point: {
-          type: 'Point' as any,
-          coordinates: [0.982904, 47.410998],
-        },
-        comment: 'Problème de voirie',
-      };
-
-      const response = await request(app.getHttpServer())
-        .post(`/alerts?sourceId=${privateSource.id}`)
-        .send(createAlertDTO)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
-
-      expect(response.body).toEqual({
-        ...createAlertDTO,
-        nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
-        id: expect.any(String),
-        point: {
-          coordinates: expect.any(Array),
-          type: 'Point',
-        },
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
-        deletedAt: null,
-        processedBy: null,
-        source: {
-          ...privateSource,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        },
-        status: AlertStatusEnum.PENDING,
-      });
-    });
-
-    it('should create an alert of type OTHER', async () => {
-      const { token, ...privateSource } = await createRecording(
-        sourceRepository,
-        new Source({
-          nom: 'Pifomètre',
-          type: SourceTypeEnum.PRIVATE,
-        }),
-      );
-
-      const createAlertDTO: CreateAlertDTO = {
-        codeCommune: '37001',
-        type: AlertTypeEnum.OTHER,
-        point: {
-          type: 'Point' as any,
-          coordinates: [0.982904, 47.410998],
-        },
-        comment: 'Autre remarque',
-      };
-
-      const response = await request(app.getHttpServer())
-        .post(`/alerts?sourceId=${privateSource.id}`)
-        .send(createAlertDTO)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
-
-      expect(response.body).toEqual({
-        ...createAlertDTO,
-        nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
-        id: expect.any(String),
-        point: {
-          coordinates: expect.any(Array),
-          type: 'Point',
-        },
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
-        deletedAt: null,
-        processedBy: null,
+        context: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -728,6 +603,7 @@ describe('Alert module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        context: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -738,6 +614,76 @@ describe('Alert module', () => {
 
       // Author should not be returned in the response (select: false)
       expect(response.body.author).toBeUndefined();
+    });
+
+    it('should create an alert with context', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const createAlertDTO: CreateAlertDTO = {
+        codeCommune: '37001',
+        type: AlertTypeEnum.MISSING_ADDRESS,
+        point: {
+          type: 'Point' as any,
+          coordinates: [0.982904, 47.410998],
+        },
+        comment: 'Adresse manquante avec contexte RNB',
+        context: {
+          idRNB: 'RNB-12345',
+          createdAddress: {
+            type: 'NUMERO' as any,
+            numero: 10,
+            suffixe: 'bis',
+            position: {
+              type: 'BATIMENT' as any,
+              point: {
+                type: 'Point' as any,
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+            toponyme: {
+              type: 'VOIE' as any,
+              nom: 'Rue de la Paix',
+            },
+          } as any,
+        },
+      };
+
+      const response = await request(app.getHttpServer())
+        .post(`/alerts?sourceId=${privateSource.id}`)
+        .send(createAlertDTO)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        ...createAlertDTO,
+        nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
+        id: expect.any(String),
+        point: {
+          coordinates: expect.any(Array),
+          type: 'Point',
+        },
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+        deletedAt: null,
+        processedBy: null,
+        source: {
+          ...privateSource,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+        status: AlertStatusEnum.PENDING,
+      });
+
+      expect(response.body.context).toEqual({
+        idRNB: 'RNB-12345',
+        createdAddress: createAlertDTO.context.createdAddress,
+      });
     });
 
     it('should return a 405 error if the commune is disabled', async () => {

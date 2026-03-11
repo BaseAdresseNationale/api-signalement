@@ -11,7 +11,7 @@ export class AddAlerts1772184337212 implements MigrationInterface {
 
     // Create type for type
     await queryRunner.query(
-      `CREATE TYPE "alerts_type_enum" AS ENUM ('MISSING_ADDRESS', 'ROAD_PROBLEM', 'OTHER')`,
+      `CREATE TYPE "alerts_type_enum" AS ENUM ('MISSING_ADDRESS')`,
     );
 
     // Create table

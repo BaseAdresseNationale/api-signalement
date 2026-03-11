@@ -15,6 +15,7 @@ import { getCommune } from '../../utils/cog.utils';
 import { AlertStatusEnum, AlertTypeEnum } from './alert.types';
 import { CreateAlertDTO } from './alert.dto';
 import { Author } from '../../common/schema/author.schema';
+import { MissingAddressContext } from './schemas/alert-context.schema';
 
 @Entity('alerts')
 export class Alert extends BaseEntity {
@@ -57,6 +58,10 @@ export class Alert extends BaseEntity {
   @Column('text', { name: 'comment' })
   comment: string;
 
+  @Column('jsonb', { nullable: true })
+  @ApiProperty({ required: false, nullable: true, type: MissingAddressContext })
+  context?: MissingAddressContext;
+
   @ApiProperty({ required: false, nullable: true, type: () => Client })
   @JoinColumn({ name: 'processed_by', referencedColumnName: 'id' })
   @ManyToOne(() => Client, (client) => client.processedAlerts, {
@@ -68,13 +73,15 @@ export class Alert extends BaseEntity {
   constructor(createInput: CreateAlertDTO) {
     super();
     if (createInput) {
-      const { codeCommune, type, author, point, comment } = createInput;
+      const { codeCommune, type, author, point, comment, context } =
+        createInput;
       this.codeCommune = codeCommune;
       this.author = author;
       this.status = AlertStatusEnum.PENDING;
       this.type = type;
       this.point = point;
       this.comment = comment;
+      this.context = context;
     }
   }
 
