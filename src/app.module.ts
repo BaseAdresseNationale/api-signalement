@@ -13,6 +13,7 @@ import { SettingModule } from './modules/setting/setting.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { AlertModule } from './modules/alert/alert.module';
 import { TilesModule } from './modules/tiles/tiles.module';
+import { ReportModule } from './modules/report/report.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TilesModule } from './modules/tiles/tiles.module';
     SettingModule,
     AlertModule,
     TilesModule,
+    ReportModule,
     StatsModule,
   ],
   controllers: [],
