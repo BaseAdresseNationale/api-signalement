@@ -6,6 +6,7 @@ import { FixNumeroStringInChangesRequested1753283848477 } from './1753283848477-
 import { MakeExistingLocationNullable1753954345161 } from './1753954345161-make-existing-location-nullable';
 import { AddAlerts1772184337212 } from './1772184337212-add-alerts';
 import { AddAlertContext1773456000000 } from './1773456000000-add-alert-context';
+import { SingleTableInheritance1774000000000 } from './1774000000000-single-table-inheritance';
 
 export const migrations = [
   PostGisAddSignalementPoint1741898533813,
@@ -16,4 +17,5 @@ export const migrations = [
   MakeExistingLocationNullable1753954345161,
   AddAlerts1772184337212,
   AddAlertContext1773456000000,
+  SingleTableInheritance1774000000000,
 ];

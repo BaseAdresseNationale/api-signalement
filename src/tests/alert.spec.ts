@@ -42,6 +42,7 @@ const getSerializedAlert = (
     ...rest,
     codeCommune,
     nomCommune: getCommune(codeCommune)?.nom,
+    reportKind: 'alert',
     createdAt: new Date(createdAt).toISOString(),
     updatedAt:
       updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
@@ -540,6 +541,7 @@ describe('Alert module', () => {
       expect(response.body).toEqual({
         ...createAlertDTO,
         nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
+        reportKind: 'alert',
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),
@@ -594,6 +596,7 @@ describe('Alert module', () => {
       expect(response.body).toEqual({
         ...createAlertDTOWithoutAuthor,
         nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
+        reportKind: 'alert',
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),
@@ -663,6 +666,7 @@ describe('Alert module', () => {
       expect(response.body).toEqual({
         ...createAlertDTO,
         nomCommune: getCommune(createAlertDTO.codeCommune)?.nom,
+        reportKind: 'alert',
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),

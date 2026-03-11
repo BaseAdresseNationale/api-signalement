@@ -3,9 +3,14 @@ import { TilesController } from './tiles.controller';
 import { TilesService } from './tiles.service';
 import { AlertModule } from '../alert/alert.module';
 import { SignalementModule } from '../signalement/signalement.module';
+import { ReportModule } from '../report/report.module';
 
 @Module({
-  imports: [forwardRef(() => AlertModule), forwardRef(() => SignalementModule)],
+  imports: [
+    forwardRef(() => AlertModule),
+    forwardRef(() => SignalementModule),
+    forwardRef(() => ReportModule),
+  ],
   controllers: [TilesController],
   providers: [TilesService],
 })

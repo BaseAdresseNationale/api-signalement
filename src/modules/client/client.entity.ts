@@ -2,9 +2,8 @@ import { Entity, Column, OneToMany } from 'typeorm';
 import { CreateClientDTO } from './client.dto';
 import { BaseEntity } from '../../common/base.entity';
 import { generateToken } from '../../utils/token.utils';
-import { Signalement } from '../signalement/signalement.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { Alert } from '../alert/alert.entity';
+import { Report } from '../report/report.entity';
 
 @Entity('clients')
 export class Client extends BaseEntity {
@@ -15,27 +14,16 @@ export class Client extends BaseEntity {
   @Column({ select: false })
   token?: string;
 
-  @OneToMany(() => Signalement, (signalement) => signalement.processedBy, {
+  @OneToMany(() => Report, (report) => report.processedBy, {
     persistence: false,
   })
   @ApiProperty({
     required: false,
     nullable: true,
     default: [],
-    type: () => [Signalement],
+    type: () => [Report],
   })
-  processedSignalements?: Signalement[];
-
-  @OneToMany(() => Alert, (alert) => alert.processedBy, {
-    persistence: false,
-  })
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    default: [],
-    type: () => [Alert],
-  })
-  processedAlerts?: Alert[];
+  processedReports?: Report[];
 
   constructor(createInput: CreateClientDTO) {
     super();

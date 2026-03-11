@@ -4,7 +4,7 @@ import { DeleteResult, Repository } from 'typeorm';
 import { SourceService } from '../modules/source/source.service';
 import { ClientService } from '../modules/client/client.service';
 import { SettingService } from '../modules/setting/setting.service';
-import { BaseEntity } from './base.entity';
+import { Report } from '../modules/report/report.entity';
 import { getCols } from '../utils/repository.utils';
 import { ReportStatusEnum } from './report-status.enum';
 import { PaginatedResult } from './dto/paginated-result.dto';
@@ -18,16 +18,7 @@ export interface UpdateReportDTO {
   status: ReportStatusEnum;
 }
 
-export abstract class BaseReportService<
-  T extends BaseEntity & {
-    codeCommune: string;
-    status: ReportStatusEnum;
-    source: any;
-    processedBy?: any;
-    author?: { firstName?: string; lastName?: string; email?: string };
-    nomCommune?: string;
-  },
-> {
+export abstract class BaseReportService<T extends Report> {
   constructor(
     protected readonly repository: Repository<T>,
     protected readonly sourceService: SourceService,

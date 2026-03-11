@@ -4,6 +4,7 @@ import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { In } from 'typeorm';
 import { ReportService, ReportTypeEnum } from './report.service';
 import { ReportStatusEnum } from '../../common/report-status.enum';
+import { PaginatedReportsDTO } from './report.dto';
 
 @Controller('reports')
 @ApiTags('reports')
@@ -45,7 +46,7 @@ export class ReportController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: HttpStatus.OK })
+  @ApiResponse({ status: HttpStatus.OK, type: PaginatedReportsDTO })
   async getReports(
     @Res() res: Response,
     @Query('codeCommunes') codeCommunes: string | string[] = [],
@@ -63,15 +64,19 @@ export class ReportController {
         : codeCommunes;
     }
     if (sourceIds.length > 0) {
-      filters.sourceIds = Array.isArray(sourceIds) ? In(sourceIds) : sourceIds;
+      filters.source = Array.isArray(sourceIds) ? In(sourceIds) : sourceIds;
     }
     if (status.length > 0) {
       filters.status = Array.isArray(status) ? In(status) : status;
     }
-    filters.types =
-      types.length > 0 ? (Array.isArray(types) ? types : [types]) : undefined;
+    if (types.length > 0) {
+      filters.type = Array.isArray(types) ? In(types) : types;
+    }
 
-    const pagination = { page, limit: limit > 100 ? 100 : limit };
+    const pagination = {
+      page: Number(page),
+      limit: Number(limit) > 100 ? 100 : Number(limit),
+    };
     const reports = await this.reportService.findMany(filters, pagination);
 
     res.status(HttpStatus.OK).json(reports);
