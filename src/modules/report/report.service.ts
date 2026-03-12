@@ -2,12 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Report } from './report.entity';
-import { AlertTypeEnum } from '../alert/alert.types';
-import { SignalementTypeEnum } from '../signalement/signalement.types';
 import { PaginatedResult } from '../../common/dto/paginated-result.dto';
-
-export const ReportTypeEnum = { ...AlertTypeEnum, ...SignalementTypeEnum };
-export type ReportTypeEnum = AlertTypeEnum | SignalementTypeEnum;
 
 @Injectable()
 export class ReportService {

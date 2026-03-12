@@ -1,19 +1,27 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class SingleTableInheritance1774000000000 implements MigrationInterface {
-  name = 'SingleTableInheritance1774000000000';
+export class SingleTableInheritance1773308681996 implements MigrationInterface {
+  name = 'SingleTableInheritance1773308681996';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1. Create the unified reports table
+    // 1. Create enum types
+    await queryRunner.query(
+      `CREATE TYPE "report_kind_enum" AS ENUM ('alert', 'signalement')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "report_type_enum" AS ENUM ('MISSING_ADDRESS', 'LOCATION_TO_UPDATE', 'LOCATION_TO_DELETE', 'LOCATION_TO_CREATE')`,
+    );
+
+    // 2. Create the unified reports table
     await queryRunner.query(`
       CREATE TABLE "reports" (
         "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
         "deleted_at" TIMESTAMP,
-        "report_kind" VARCHAR NOT NULL,
+        "report_kind" "report_kind_enum" NOT NULL,
         "code_commune" TEXT NOT NULL,
-        "type" TEXT NOT NULL,
+        "type" "report_type_enum" NOT NULL,
         "status" TEXT NOT NULL DEFAULT 'PENDING',
         "author" JSONB,
         "point" geometry(Point,4326),
@@ -44,47 +52,21 @@ export class SingleTableInheritance1774000000000 implements MigrationInterface {
       )
       SELECT
         "id", "created_at", "updated_at", "deleted_at",
-        'signalement', "code_commune", "type"::text, "status"::text,
+        'signalement'::"report_kind_enum", "code_commune", "type"::text::"report_type_enum", "status"::text,
         "author", "point", "source_id", "processed_by",
         "existing_location", "changes_requested", "rejection_reason"
       FROM "signalements"
     `);
 
-    // 4. Migrate data from alerts
-    await queryRunner.query(`
-      INSERT INTO "reports" (
-        "id", "created_at", "updated_at", "deleted_at",
-        "report_kind", "code_commune", "type", "status",
-        "author", "point", "source_id", "processed_by",
-        "comment", "context"
-      )
-      SELECT
-        "id", "created_at", "updated_at", "deleted_at",
-        'alert', "code_commune", "type"::text, "status"::text,
-        "author", "point", "source_id", "processed_by",
-        "comment", "context"
-      FROM "alerts"
-    `);
-
     // 5. Drop old tables
     await queryRunner.query(`DROP TABLE "signalements"`);
-    await queryRunner.query(`DROP TABLE "alerts"`);
 
     // 6. Drop old enum types
-    await queryRunner.query(`DROP TYPE IF EXISTS "alerts_status_enum"`);
-    await queryRunner.query(`DROP TYPE IF EXISTS "alerts_type_enum"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "signalements_status_enum"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "signalements_type_enum"`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Recreate enum types
-    await queryRunner.query(
-      `CREATE TYPE "alerts_status_enum" AS ENUM ('PENDING', 'IGNORED', 'PROCESSED', 'EXPIRED')`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "alerts_type_enum" AS ENUM ('MISSING_ADDRESS')`,
-    );
     await queryRunner.query(
       `CREATE TYPE "signalements_status_enum" AS ENUM ('PENDING', 'IGNORED', 'PROCESSED', 'EXPIRED')`,
     );
@@ -118,31 +100,6 @@ export class SingleTableInheritance1774000000000 implements MigrationInterface {
       `CREATE INDEX "IDX_signalements_point" ON "signalements" USING GIST ("point")`,
     );
 
-    // Recreate alerts table
-    await queryRunner.query(`
-      CREATE TABLE "alerts" (
-        "id" UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-        "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-        "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
-        "deleted_at" TIMESTAMP,
-        "code_commune" TEXT NOT NULL,
-        "type" "alerts_type_enum" NOT NULL,
-        "point" geometry(Point,4326) NOT NULL,
-        "author" JSONB,
-        "status" "alerts_status_enum" NOT NULL,
-        "source_id" UUID NOT NULL,
-        "comment" TEXT NOT NULL,
-        "processed_by" UUID,
-        "context" JSONB,
-        CONSTRAINT "FK_alerts_source_id" FOREIGN KEY ("source_id") REFERENCES "sources"("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
-        CONSTRAINT "FK_alerts_processed_by" FOREIGN KEY ("processed_by") REFERENCES "clients"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
-      )
-    `);
-
-    await queryRunner.query(
-      `CREATE INDEX "IDX_alerts_point" ON "alerts" USING GIST ("point")`,
-    );
-
     // Migrate data back to signalements
     await queryRunner.query(`
       INSERT INTO "signalements" (
@@ -153,29 +110,18 @@ export class SingleTableInheritance1774000000000 implements MigrationInterface {
       )
       SELECT
         "id", "created_at", "updated_at", "deleted_at",
-        "code_commune", "type"::"signalements_type_enum", "status"::"signalements_status_enum",
+        "code_commune", "type"::text::"signalements_type_enum", "status"::text::"signalements_status_enum",
         "author", "point", "source_id", "processed_by",
         "existing_location", "changes_requested", "rejection_reason"
       FROM "reports"
       WHERE "report_kind" = 'signalement'
     `);
 
-    // Migrate data back to alerts
-    await queryRunner.query(`
-      INSERT INTO "alerts" (
-        "id", "created_at", "updated_at", "deleted_at",
-        "code_commune", "type", "status", "author", "point",
-        "source_id", "comment", "processed_by", "context"
-      )
-      SELECT
-        "id", "created_at", "updated_at", "deleted_at",
-        "code_commune", "type"::"alerts_type_enum", "status"::"alerts_status_enum",
-        "author", "point", "source_id", "comment", "processed_by", "context"
-      FROM "reports"
-      WHERE "report_kind" = 'alert'
-    `);
-
     // Drop reports table
     await queryRunner.query(`DROP TABLE "reports"`);
+
+    // Drop report enum types
+    await queryRunner.query(`DROP TYPE IF EXISTS "report_kind_enum"`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "report_type_enum"`);
   }
 }

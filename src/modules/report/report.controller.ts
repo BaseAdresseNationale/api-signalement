@@ -2,7 +2,8 @@ import { Controller, Get, HttpStatus, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { In } from 'typeorm';
-import { ReportService, ReportTypeEnum } from './report.service';
+import { ReportService } from './report.service';
+import { ReportTypeEnum } from './report.type';
 import { ReportStatusEnum } from '../../common/report-status.enum';
 import { PaginatedReportsDTO } from './report.dto';
 

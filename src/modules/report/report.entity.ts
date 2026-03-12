@@ -15,9 +15,12 @@ import { Client } from '../client/client.entity';
 import { ReportStatusEnum } from '../../common/report-status.enum';
 import { Author } from '../../common/schema/author.schema';
 import { getCommune } from '../../utils/cog.utils';
+import { ReportKindEnum, ReportTypeEnum } from './report.type';
 
 @Entity('reports')
-@TableInheritance({ column: { type: 'varchar', name: 'report_kind' } })
+@TableInheritance({
+  column: { type: 'enum', name: 'report_kind', enum: ReportKindEnum },
+})
 export class Report extends BaseEntity {
   @ApiProperty({ required: true, nullable: false })
   @Column('text', { name: 'code_commune' })
@@ -26,15 +29,15 @@ export class Report extends BaseEntity {
   @ApiProperty({ required: false, nullable: true, type: String })
   nomCommune?: string;
 
-  @Column('text', { nullable: false })
-  @ApiProperty({ required: true, nullable: false })
-  type: string;
+  @Column({ type: 'enum', enum: ReportTypeEnum, nullable: false })
+  @ApiProperty({ required: true, nullable: false, enum: ReportTypeEnum })
+  type: ReportTypeEnum;
 
   @Column('jsonb', { select: false, nullable: true })
   @ApiProperty({ required: false, nullable: true, type: Author })
   author?: Author;
 
-  @Column('text', { nullable: false, default: 'PENDING' })
+  @Column('text', { nullable: false, default: ReportStatusEnum.PENDING })
   @ApiProperty({ required: true, nullable: false, enum: ReportStatusEnum })
   status: ReportStatusEnum;
 
@@ -63,8 +66,8 @@ export class Report extends BaseEntity {
   })
   processedBy?: Client;
 
-  @ApiProperty({ required: false, nullable: true })
-  reportKind?: string;
+  @ApiProperty({ nullable: false, enum: ReportKindEnum })
+  reportKind: ReportKindEnum;
 
   @AfterLoad()
   getNomCommune?(): void {

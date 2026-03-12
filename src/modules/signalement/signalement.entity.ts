@@ -17,6 +17,7 @@ import {
 import { getSignalementPosition } from './signalement.utils';
 import { Report } from '../report/report.entity';
 import { ReportStatusEnum } from '../../common/report-status.enum';
+import { ReportKindEnum } from '../report/report.type';
 
 @ChildEntity('signalement')
 @ApiExtraModels(
@@ -30,6 +31,7 @@ import { ReportStatusEnum } from '../../common/report-status.enum';
   VoieChangesRequestedDTO,
 )
 export class Signalement extends Report {
+  @ApiProperty({ required: true, nullable: false, enum: SignalementTypeEnum })
   declare type: SignalementTypeEnum;
 
   @Column('jsonb', { name: 'existing_location', nullable: true })
@@ -82,6 +84,6 @@ export class Signalement extends Report {
 
   @AfterLoad()
   setReportKind?(): void {
-    this.reportKind = 'signalement';
+    this.reportKind = ReportKindEnum.SIGNALEMENT;
   }
 }
