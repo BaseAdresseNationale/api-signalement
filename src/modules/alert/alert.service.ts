@@ -9,8 +9,9 @@ import { Alert } from './alert.entity';
 import {
   BaseReportService,
   CreateReportDTO,
+  UpdateReportDTO,
 } from '../../common/base-report.service';
-import { CreateAlertDTO } from './alert.dto';
+import { CreateAlertDTO, UpdateAlertDTO } from './alert.dto';
 import { AlertStatusEnum } from './alert.types';
 import { StatsDTO } from '../stats/stats.dto';
 
@@ -41,6 +42,16 @@ export class AlertService extends BaseReportService<Alert> {
 
   protected get entityAlias(): string {
     return 'alert';
+  }
+
+  protected getExtraUpdateFields(
+    updateDTO: UpdateReportDTO,
+  ): Partial<Record<string, any>> {
+    const { rejectionReason, context } = updateDTO as UpdateAlertDTO;
+    return {
+      ...(rejectionReason !== undefined ? { rejectionReason } : {}),
+      ...(context !== undefined ? { context } : {}),
+    };
   }
 
   protected createEntity(createDTO: CreateReportDTO): Alert {

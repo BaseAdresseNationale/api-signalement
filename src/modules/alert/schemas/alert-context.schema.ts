@@ -1,7 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ExistingNumero } from '../../signalement/schemas/existing-location.schema';
+import { IsOptional, IsString } from 'class-validator';
 
 export class MissingAddressContext {
   @ApiProperty({ required: false, nullable: true, type: String })
@@ -9,13 +7,8 @@ export class MissingAddressContext {
   @IsString()
   idRNB?: string;
 
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    type: ExistingNumero,
-  })
+  @ApiProperty({ required: false, nullable: true, type: String })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => ExistingNumero)
-  createdAddress?: ExistingNumero;
+  @IsString()
+  idBAN?: string;
 }

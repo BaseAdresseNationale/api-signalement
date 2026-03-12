@@ -72,4 +72,14 @@ export class UpdateAlertDTO {
   @ApiProperty({ required: true, nullable: false, enum: AlertStatusEnum })
   @IsEnum(AlertStatusEnum)
   status: AlertStatusEnum;
+
+  @ApiProperty({ required: false, nullable: true, type: MissingAddressContext })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MissingAddressContext)
+  context?: MissingAddressContext;
+
+  @ApiProperty({ required: false })
+  rejectionReason?: string;
 }
