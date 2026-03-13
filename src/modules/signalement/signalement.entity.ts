@@ -63,10 +63,6 @@ export class Signalement extends Report {
     | ToponymeChangesRequestedDTO
     | VoieChangesRequestedDTO;
 
-  @ApiProperty({ required: false })
-  @Column('text', { name: 'rejection_reason', nullable: true })
-  rejectionReason?: string;
-
   constructor(createInput: CreateSignalementInput) {
     super();
     if (createInput) {

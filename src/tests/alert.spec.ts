@@ -551,6 +551,7 @@ describe('Alert module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         context: null,
         source: {
           ...privateSource,
@@ -606,6 +607,7 @@ describe('Alert module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         context: null,
         source: {
           ...privateSource,
@@ -639,21 +641,9 @@ describe('Alert module', () => {
         context: {
           idRNB: 'RNB-12345',
           createdAddress: {
-            type: 'NUMERO' as any,
-            numero: 10,
-            suffixe: 'bis',
-            position: {
-              type: 'BATIMENT' as any,
-              point: {
-                type: 'Point' as any,
-                coordinates: [0.982904, 47.410998],
-              },
-            },
-            toponyme: {
-              type: 'VOIE' as any,
-              nom: 'Rue de la Paix',
-            },
-          } as any,
+            idBAN: 'ban-12345',
+            label: '10 bis Rue de la Paix',
+          },
         },
       };
 
@@ -676,6 +666,7 @@ describe('Alert module', () => {
         updatedAt: expect.any(String),
         deletedAt: null,
         processedBy: null,
+        rejectionReason: null,
         source: {
           ...privateSource,
           createdAt: expect.any(String),
@@ -808,10 +799,11 @@ describe('Alert module', () => {
         context: {
           date: expect.any(String),
           commune: getCommune('37003')?.nom,
+          rejectionReason: null,
         },
         to: 'test@test.com',
-        subject: 'Votre signalement a bien été pris en compte',
-        template: 'processed',
+        subject: 'Votre alerte a bien été prise en compte',
+        template: 'alert-processed',
       });
     });
 
@@ -917,10 +909,11 @@ describe('Alert module', () => {
         context: {
           date: expect.any(String),
           commune: getCommune('37003')?.nom,
+          rejectionReason: null,
         },
         to: 'test@test.com',
-        subject: "Votre signalement n'a pas été pris en compte",
-        template: 'ignored',
+        subject: "Votre alerte n'a pas été prise en compte",
+        template: 'alert-ignored',
       });
     });
 

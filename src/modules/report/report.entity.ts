@@ -66,6 +66,10 @@ export class Report extends BaseEntity {
   })
   processedBy?: Client;
 
+  @ApiProperty({ required: false })
+  @Column('text', { name: 'rejection_reason', nullable: true })
+  rejectionReason?: string;
+
   @ApiProperty({ nullable: false, enum: ReportKindEnum })
   reportKind: ReportKindEnum;
 

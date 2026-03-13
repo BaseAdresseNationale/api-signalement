@@ -1,9 +1,6 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { SignalementStatusEnum } from './signalement.types';
-import {
-  CreateSignalementDTO,
-  UpdateSignalementDTO,
-} from './dto/signalement.dto';
+import { CreateSignalementDTO } from './dto/signalement.dto';
 import { MailerService } from '@nestjs-modules/mailer';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
@@ -18,7 +15,6 @@ import { SettingService } from '../setting/setting.service';
 import {
   BaseReportService,
   CreateReportDTO,
-  UpdateReportDTO,
 } from '../../common/base-report.service';
 import { StatsDTO } from '../stats/stats.dto';
 
@@ -55,13 +51,6 @@ export class SignalementService extends BaseReportService<Signalement> {
     return new Signalement(createDTO as CreateSignalementDTO);
   }
 
-  protected getExtraUpdateFields(
-    updateDTO: UpdateReportDTO,
-  ): Partial<Record<string, any>> {
-    const { rejectionReason } = updateDTO as UpdateSignalementDTO;
-    return rejectionReason !== undefined ? { rejectionReason } : {};
-  }
-
   protected buildEmailContext(
     entity: Omit<Signalement, 'author'>,
   ): Record<string, any> {
@@ -69,11 +58,9 @@ export class SignalementService extends BaseReportService<Signalement> {
     // but the entity still has them at runtime
     const signalement = entity as Signalement;
     return {
-      date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
+      ...super.buildEmailContext(entity),
       location: `${getSignalementLocationLabel(signalement)} - ${entity.nomCommune}`,
       locationType: getSignalementLocationTypeLabel(signalement),
-      commune: entity.nomCommune,
-      rejectionReason: signalement.rejectionReason,
     };
   }
 

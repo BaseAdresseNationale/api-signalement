@@ -16,6 +16,7 @@ export interface CreateReportDTO {
 
 export interface UpdateReportDTO {
   status: ReportStatusEnum;
+  rejectionReason?: string;
 }
 
 export abstract class BaseReportService<T extends Report> {
@@ -44,11 +45,24 @@ export abstract class BaseReportService<T extends Report> {
     return {};
   }
 
+  /** Retourne le sujet de l'email de notification */
+  protected getEmailSubject(status: ReportStatusEnum): string {
+    return status === ReportStatusEnum.PROCESSED
+      ? 'Votre signalement a bien été pris en compte'
+      : "Votre signalement n'a pas été pris en compte";
+  }
+
+  /** Retourne le nom du template email */
+  protected getEmailTemplate(status: ReportStatusEnum): string {
+    return status === ReportStatusEnum.PROCESSED ? 'processed' : 'ignored';
+  }
+
   /** Construit le contexte additionnel pour l'email de notification */
   protected buildEmailContext(entity: Omit<T, 'author'>): Record<string, any> {
     return {
       date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
       commune: entity.nomCommune,
+      rejectionReason: entity.rejectionReason,
     };
   }
 
@@ -167,11 +181,13 @@ export abstract class BaseReportService<T extends Report> {
       );
     }
 
+    const { rejectionReason } = updateDTO;
     await this.repository.update(
       { id: entityId } as any,
       {
         status,
         processedBy: client,
+        ...(rejectionReason !== undefined ? { rejectionReason } : {}),
         ...this.getExtraUpdateFields(updateDTO),
       } as any,
     );
@@ -189,14 +205,8 @@ export abstract class BaseReportService<T extends Report> {
       try {
         await this.mailerService.sendMail({
           to: author.email,
-          subject:
-            updatedEntity.status === ReportStatusEnum.PROCESSED
-              ? 'Votre signalement a bien été pris en compte'
-              : "Votre signalement n'a pas été pris en compte",
-          template:
-            updatedEntity.status === ReportStatusEnum.PROCESSED
-              ? 'processed'
-              : 'ignored',
+          subject: this.getEmailSubject(updatedEntity.status),
+          template: this.getEmailTemplate(updatedEntity.status),
           context: this.buildEmailContext(updatedEntity),
         });
       } catch (error) {

@@ -47,9 +47,8 @@ export class AlertService extends BaseReportService<Alert> {
   protected getExtraUpdateFields(
     updateDTO: UpdateReportDTO,
   ): Partial<Record<string, any>> {
-    const { rejectionReason, context } = updateDTO as UpdateAlertDTO;
+    const { context } = updateDTO as UpdateAlertDTO;
     return {
-      ...(rejectionReason !== undefined ? { rejectionReason } : {}),
       ...(context !== undefined ? { context } : {}),
     };
   }
@@ -58,12 +57,27 @@ export class AlertService extends BaseReportService<Alert> {
     return new Alert(createDTO as CreateAlertDTO);
   }
 
+  protected getEmailSubject(status: AlertStatusEnum): string {
+    return status === AlertStatusEnum.PROCESSED
+      ? 'Votre alerte a bien été prise en compte'
+      : "Votre alerte n'a pas été prise en compte";
+  }
+
+  protected getEmailTemplate(status: AlertStatusEnum): string {
+    return status === AlertStatusEnum.PROCESSED
+      ? 'alert-processed'
+      : 'alert-ignored';
+  }
+
   protected buildEmailContext(
     entity: Omit<Alert, 'author'>,
   ): Record<string, any> {
+    const alert = entity as Alert;
     return {
-      date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
-      commune: entity.nomCommune,
+      ...super.buildEmailContext(entity),
+      ...(alert.context?.createdAddress?.label
+        ? { createdAddress: alert.context.createdAddress.label }
+        : {}),
     };
   }
 
