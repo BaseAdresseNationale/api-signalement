@@ -15,4 +15,7 @@ export class CreateSourceDTO {
     enum: SourceTypeEnum,
   })
   type: SourceTypeEnum;
+
+  @ApiProperty({ required: false, nullable: true })
+  siret?: string;
 }

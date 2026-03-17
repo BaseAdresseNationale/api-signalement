@@ -39,9 +39,31 @@ export class SourceService {
     return sources;
   }
 
+  async findOneBySiret(siret: string): Promise<Source | null> {
+    return this.sourceRepository.findOne({ where: { siret } });
+  }
+
   async createOne(createSourceDTO: CreateSourceDTO): Promise<Source> {
     const newSource = new Source(createSourceDTO);
 
     return this.sourceRepository.save(newSource);
+  }
+
+  async updateOne(source: Source): Promise<Source> {
+    return this.sourceRepository.save(source);
+  }
+
+  async findOneWithToken(id: string): Promise<Source> {
+    const source = await this.sourceRepository
+      .createQueryBuilder('source')
+      .addSelect('source.token')
+      .where('source.id = :id', { id })
+      .getOne();
+
+    if (!source) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    return source;
   }
 }
