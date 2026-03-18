@@ -71,8 +71,6 @@ export class ProConnectController {
       );
 
       const params = new URLSearchParams({
-        sourceId: source.id,
-        sourceNom: source.nom,
         sourceToken: source.token,
         firstName: userInfo.given_name || '',
         lastName: userInfo.usual_name || '',
@@ -83,14 +81,14 @@ export class ProConnectController {
         'MES_SIGNALEMENTS_URL',
       );
 
-      res.redirect(`${frontendUrl}/proconnect-callback?${params.toString()}`);
+      res.redirect(`${frontendUrl}/#/proconnect-callback?${params.toString()}`);
     } catch (error) {
       console.error('ProConnect login callback error:', error);
       const frontendUrl = this.configService.get<string>(
         'MES_SIGNALEMENTS_URL',
       );
       res.redirect(
-        `${frontendUrl}/proconnect-callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`,
+        `${frontendUrl}/#/proconnect-callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`,
       );
     }
   }

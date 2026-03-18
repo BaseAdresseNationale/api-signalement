@@ -90,6 +90,11 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `PORT`                        | Port de l'api                                                                                               |
 | `API_SIGNALEMENT_URL`         | Url de l'api                                                                                                |
 | `RESET_COMMUNE_FOR_WEBINAIRE` | Commune à réinitialiser toutes les semaines pour les webinaires (à paramétrer uniquement sur l'env de démo) |
+| `PROCONNECT_CLIENT_ID`        | Client ID ProConnect                                                                                        |
+| `PROCONNECT_CLIENT_SECRET`    | Client Secret Proconnect                                                                                    |
+| `PROCONNECT_ENDPOINT`         | Proconnect Endpoint                                                                                         |
+| `INSEE_API_URL`               | Url de l'API INSEE (Sirene)                                                                                 |
+| `INSEE_API_KEY_INTEGRATION`   | Clef de l'API INSEE (Sirene)                                                                                |
 
 ## Licence
 

@@ -63,6 +63,47 @@ export class ProConnectService {
     };
   }
 
+  async getOrganizationName(siret: string): Promise<string | null> {
+    const apiUrl = this.configService.get<string>('INSEE_API_URL');
+    const apiKey = this.configService.get<string>('INSEE_API_KEY_INTEGRATION');
+
+    if (!apiKey || !apiUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${apiUrl}/siret/${siret}`, {
+        headers: {
+          'X-INSEE-Api-Key-Integration': apiKey,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      const etablissement = data.etablissement;
+      const uniteLegale = etablissement?.uniteLegale;
+
+      if (uniteLegale?.denominationUniteLegale) {
+        return uniteLegale.denominationUniteLegale;
+      }
+
+      if (uniteLegale?.nomUniteLegale) {
+        return `${uniteLegale.prenomUsuelUniteLegale || ''} ${uniteLegale.nomUniteLegale}`.trim();
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `Error fetching organization name for SIRET ${siret}: ${error.message}`,
+      );
+      return null;
+    }
+  }
+
   async getAuthorizationUrl(state: string, nonce: string): Promise<string> {
     const client = await this.getClient();
 
@@ -110,12 +151,21 @@ export class ProConnectService {
       );
     }
 
+    const organizationName = await this.getOrganizationName(userInfo.siret);
+
+    if (!organizationName) {
+      throw new HttpException(
+        `No organization name found for SIRET ${userInfo.siret}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     let source = await this.sourceService.findOneBySiret(userInfo.siret);
 
     if (!source) {
       this.logger.log(`Creating new source for SIRET ${userInfo.siret}`);
       source = await this.sourceService.createOne({
-        nom: userInfo.sub,
+        nom: organizationName,
         type: SourceTypeEnum.PRIVATE,
         siret: userInfo.siret,
       });
