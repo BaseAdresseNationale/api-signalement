@@ -9,7 +9,7 @@ import {
   Validate,
   ValidateIf,
 } from 'class-validator';
-import { PositionDTO } from './position.dto';
+import { PositionDTO } from '../../../common/dto/position.dto';
 import { ValidatorBal } from '../../../validators/bal.validator';
 
 export class NumeroChangesRequestedDTO {

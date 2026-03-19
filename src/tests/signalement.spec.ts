@@ -57,6 +57,7 @@ const getSerializedSignalement = (
     ...rest,
     codeCommune,
     nomCommune: getCommune(codeCommune)?.nom,
+    reportKind: 'signalement',
     createdAt: new Date(createdAt).toISOString(),
     updatedAt:
       updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
@@ -1185,6 +1186,7 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        reportKind: 'signalement',
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),
@@ -1242,6 +1244,7 @@ describe('Signalement module', () => {
       expect(response.body).toEqual({
         ...createSignalementDTO,
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        reportKind: 'signalement',
         id: expect.any(String),
         point: {
           coordinates: expect.any(Array),
@@ -1317,6 +1320,7 @@ describe('Signalement module', () => {
         ...createSignalementDTO,
         id: expect.any(String),
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        reportKind: 'signalement',
         point: {
           coordinates: expect.any(Array),
           type: 'Point',
@@ -1394,6 +1398,7 @@ describe('Signalement module', () => {
         },
         id: expect.any(String),
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        reportKind: 'signalement',
         point: {
           coordinates: expect.any(Array),
           type: 'Point',
@@ -1455,6 +1460,7 @@ describe('Signalement module', () => {
         ...createSignalementDTO,
         id: expect.any(String),
         nomCommune: getCommune(createSignalementDTO.codeCommune)?.nom,
+        reportKind: 'signalement',
         point: {
           coordinates: expect.any(Array),
           type: 'Point',
@@ -1679,6 +1685,7 @@ describe('Signalement module', () => {
           commune: 'Abilly',
           location: '2 bis Rue de la Paix - Abilly',
           locationType: `l'adresse`,
+          rejectionReason: null,
         },
         to: 'test@test.com',
         subject: 'Votre signalement a bien été pris en compte',

@@ -10,6 +10,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TaskModule } from './modules/task/task.module';
 import typeorm from './config/typeorm';
 import { SettingModule } from './modules/setting/setting.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { AlertModule } from './modules/alert/alert.module';
+import { TilesModule } from './modules/tiles/tiles.module';
+import { ReportModule } from './modules/report/report.module';
 
 @Module({
   imports: [
@@ -46,6 +50,10 @@ import { SettingModule } from './modules/setting/setting.module';
     ScheduleModule.forRoot(),
     TaskModule,
     SettingModule,
+    AlertModule,
+    TilesModule,
+    ReportModule,
+    StatsModule,
   ],
   controllers: [],
   providers: [],

@@ -4,6 +4,7 @@ import { AddSettings1747315664342 } from './1747315664342-add-settings';
 import { COG2025_1750325214122 } from './1750325214122-cog-2025';
 import { FixNumeroStringInChangesRequested1753283848477 } from './1753283848477-fix-numero-string-in-changes-requested';
 import { MakeExistingLocationNullable1753954345161 } from './1753954345161-make-existing-location-nullable';
+import { SingleTableInheritance1773308681996 } from './1773308681996-single-table-inheritance';
 
 export const migrations = [
   PostGisAddSignalementPoint1741898533813,
@@ -12,4 +13,5 @@ export const migrations = [
   COG2025_1750325214122,
   FixNumeroStringInChangesRequested1753283848477,
   MakeExistingLocationNullable1753954345161,
+  SingleTableInheritance1773308681996,
 ];

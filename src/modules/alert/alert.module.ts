@@ -4,40 +4,40 @@ import {
   RequestMethod,
   forwardRef,
 } from '@nestjs/common';
-import { SignalementController } from './signalement.controller';
-import { SignalementService } from './signalement.service';
 import { SourceModule } from '../source/source.module';
 import { SourceMiddleware } from '../source/source.middleware';
 import { ClientModule } from '../client/client.module';
 import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Signalement } from './signalement.entity';
 import { SettingModule } from '../setting/setting.module';
+import { Alert } from './alert.entity';
+import { AlertController } from './alert.controller';
+import { AlertService } from './alert.service';
 
 @Module({
   imports: [
-    forwardRef(() => TypeOrmModule.forFeature([Signalement])),
+    forwardRef(() => TypeOrmModule.forFeature([Alert])),
     forwardRef(() => SourceModule),
     forwardRef(() => ClientModule),
     forwardRef(() => SettingModule),
   ],
-  controllers: [SignalementController],
-  providers: [SignalementService],
-  exports: [SignalementService],
+  controllers: [AlertController],
+  providers: [AlertService],
+  exports: [AlertService],
 })
-export class SignalementModule {
+export class AlertModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(SourceMiddleware)
-      .forRoutes({ path: 'signalements', method: RequestMethod.POST });
+      .forRoutes({ path: 'alerts', method: RequestMethod.POST });
 
     consumer.apply(ClientMiddleware).forRoutes(
       {
-        path: 'signalements/:idSignalement',
+        path: 'alerts/:idAlert',
         method: RequestMethod.GET,
       },
       {
-        path: 'signalements/:idSignalement',
+        path: 'alerts/:idAlert',
         method: RequestMethod.PUT,
       },
     );

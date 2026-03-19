@@ -8,7 +8,7 @@ import {
   IsNotEmpty,
   ValidateNested,
 } from 'class-validator';
-import { PositionTypeEnum } from '../schemas/position.schema';
+import { PositionTypeEnum } from '../../modules/signalement/schemas/position.schema';
 import { Type } from 'class-transformer';
 import { Position as PositionTurf } from '@turf/helpers';
 
