@@ -23,13 +23,16 @@ export class StatsController {
     type: CombinedStatsDTO,
   })
   async getStats(@Res() res: Response) {
-    const signalementStats = await this.signalementService.getStats();
-    const alertStats = await this.alertService.getStats();
-    const stats = {
+    const stats = await Promise.all([
+      this.signalementService.getStats(),
+      this.alertService.getStats(),
+    ]);
+    const [signalementStats, alertStats] = stats;
+    const combinedStats = {
       signalementStats,
       alertStats,
     };
 
-    res.status(HttpStatus.OK).json(stats);
+    res.status(HttpStatus.OK).json(combinedStats);
   }
 }

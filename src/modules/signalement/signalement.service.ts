@@ -102,7 +102,7 @@ export class SignalementService extends BaseReportService<Signalement> {
           if (!acc[source]) {
             acc[source] = {};
           }
-          acc[source][status] = count;
+          acc[source][status] = Number(count);
 
           return acc;
         },
@@ -116,7 +116,7 @@ export class SignalementService extends BaseReportService<Signalement> {
           if (!acc[client]) {
             acc[client] = {};
           }
-          acc[client][status] = count;
+          acc[client][status] = Number(count);
 
           return acc;
         },
@@ -139,6 +139,9 @@ export class SignalementService extends BaseReportService<Signalement> {
       .groupBy('code_commune')
       .getRawMany();
 
-    return report as { codeCommune: string; count: number }[];
+    return report.map(({ codeCommune, count }) => ({
+      codeCommune,
+      count: Number(count),
+    })) as { codeCommune: string; count: number }[];
   }
 }

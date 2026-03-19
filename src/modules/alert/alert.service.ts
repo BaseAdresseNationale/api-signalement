@@ -118,7 +118,7 @@ export class AlertService extends BaseReportService<Alert> {
         if (!acc[source]) {
           acc[source] = {};
         }
-        acc[source][status] = count;
+        acc[source][status] = Number(count);
 
         return acc;
       }, {}),
@@ -130,7 +130,7 @@ export class AlertService extends BaseReportService<Alert> {
           if (!acc[client]) {
             acc[client] = {};
           }
-          acc[client][status] = count;
+          acc[client][status] = Number(count);
 
           return acc;
         },
