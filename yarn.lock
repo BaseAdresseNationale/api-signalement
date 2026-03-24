@@ -535,10 +535,10 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.56.0.tgz#ef20350fec605a7f7035a01764731b2de0f3782b"
   integrity sha512-gMsVel9D7f2HLkBma9VbtzZRehRogVRfbr++f06nL2vnCGCNlzOD+/MUov/F4p8myyAHspEhVobgjpX64q5m6A==
 
-"@etalab/decoupage-administratif@5.0.0":
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/@etalab/decoupage-administratif/-/decoupage-administratif-5.0.0.tgz#5bbf084118b7545abbadfaf2cde214a6bdc78443"
-  integrity sha512-Ui/5A4jqvhQ4EsikNyuvJN3lIgRHBv9N1tX7B+n08EMRqlHjzm0e+Z7pOlDHJ2EQU9XnA5xcl4lqlBpznfp07w==
+"@etalab/decoupage-administratif@6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@etalab/decoupage-administratif/-/decoupage-administratif-6.0.0.tgz#0330556cf07e21fff21111e5775a316ec18b9636"
+  integrity sha512-XavYsFlbcM/prKr8hNHPKER94IHw/dsxNM4nxjWMYk6PLFACpEedvn/7wK8Baozm0dCYhWWcf+7bcWpA5pmCaQ==
 
 "@etalab/project-legal@^0.6.0":
   version "0.6.0"
