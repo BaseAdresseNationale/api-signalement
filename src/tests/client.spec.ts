@@ -57,9 +57,9 @@ describe('Client module', () => {
   });
 
   afterAll(async () => {
-    await postgresClient.end();
-    await postgresContainer.stop();
-    await app.close();
+    await app?.close();
+    await postgresClient?.end();
+    await postgresContainer?.stop();
   });
 
   describe('POST /clients', () => {

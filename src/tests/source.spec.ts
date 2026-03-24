@@ -64,9 +64,9 @@ describe('Source module', () => {
   });
 
   afterAll(async () => {
-    await postgresClient.end();
-    await postgresContainer.stop();
-    await app.close();
+    await app?.close();
+    await postgresClient?.end();
+    await postgresContainer?.stop();
   });
 
   afterEach(async () => {

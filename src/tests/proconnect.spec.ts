@@ -3,7 +3,12 @@ import {
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
 import { Client } from 'pg';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
@@ -87,16 +92,16 @@ describe('ProConnect module', () => {
   });
 
   afterAll(async () => {
-    await postgresClient.end();
-    await postgresContainer.stop();
-    await app.close();
+    await app?.close();
+    await postgresClient?.end();
+    await postgresContainer?.stop();
   });
 
   afterEach(async () => {
     await sourceRepository.delete({});
   });
 
-  describe('GET /login', () => {
+  describe('GET /proconnect/login', () => {
     it('should redirect to ProConnect authorization URL', async () => {
       const mockAuthUrl = 'https://proconnect.example.com/authorize?state=abc';
       jest
@@ -104,7 +109,7 @@ describe('ProConnect module', () => {
         .mockResolvedValueOnce(mockAuthUrl);
 
       const response = await request(app.getHttpServer())
-        .get('/login')
+        .get('/proconnect/login')
         .expect(302);
 
       expect(response.headers.location).toBe(mockAuthUrl);
@@ -129,7 +134,7 @@ describe('ProConnect module', () => {
     });
   });
 
-  describe('GET /login', () => {
+  describe('GET /proconnect/callback', () => {
     it('should redirect to frontend with source info when SIRET matches existing source', async () => {
       const source = await createRecording(
         sourceRepository,
@@ -152,6 +157,7 @@ describe('ProConnect module', () => {
         given_name: 'Jean',
         usual_name: 'Dupont',
         siret: '12345678901234',
+        organizational_unit: 'SDIS 77',
       };
 
       jest.spyOn(proConnectService, 'handleCallback').mockResolvedValueOnce({
@@ -164,7 +170,7 @@ describe('ProConnect module', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get('/login')
+        .get('/proconnect/callback')
         .query({ code: 'auth-code', state: 'test-state' })
         .set('Cookie', [
           'proconnect_state=test-state',
@@ -174,35 +180,41 @@ describe('ProConnect module', () => {
 
       const redirectUrl = new URL(response.headers.location);
       expect(redirectUrl.origin).toBe(MES_SIGNALEMENTS_URL);
-      expect(redirectUrl.pathname).toBe('/callback');
-      expect(redirectUrl.searchParams.get('sourceId')).toBe(source.id);
-      expect(redirectUrl.searchParams.get('sourceNom')).toBe(source.nom);
-      expect(redirectUrl.searchParams.get('sourceToken')).toBe(
-        sourceWithToken.token,
+      // Controller uses hash routing: /#/proconnect-callback?params
+      const hashParams = new URLSearchParams(
+        redirectUrl.hash.split('?')[1] || '',
       );
-      expect(redirectUrl.searchParams.get('firstName')).toBe('Jean');
-      expect(redirectUrl.searchParams.get('lastName')).toBe('Dupont');
-      expect(redirectUrl.searchParams.get('email')).toBe('agent@mairie.fr');
+      expect(redirectUrl.hash).toContain('#/proconnect-callback');
+      expect(hashParams.get('sourceToken')).toBe(sourceWithToken.token);
+      expect(hashParams.get('firstName')).toBe('Jean');
+      expect(hashParams.get('lastName')).toBe('Dupont');
+      expect(hashParams.get('email')).toBe('agent@mairie.fr');
     });
 
     it('should redirect to frontend with error on failure', async () => {
       jest
         .spyOn(proConnectService, 'handleCallback')
-        .mockRejectedValueOnce(new Error('Invalid state'));
+        .mockRejectedValueOnce(
+          new HttpException('Invalid state', HttpStatus.BAD_REQUEST),
+        );
 
       const response = await request(app.getHttpServer())
-        .get('/login')
+        .get('/proconnect/callback')
         .query({ code: 'bad-code', state: 'bad-state' })
         .expect(302);
 
       const redirectUrl = new URL(response.headers.location);
       expect(redirectUrl.origin).toBe(MES_SIGNALEMENTS_URL);
-      expect(redirectUrl.pathname).toBe('/callback');
-      expect(redirectUrl.searchParams.get('error')).toBe('Invalid state');
+      // Controller uses hash routing: /#/proconnect-callback?error=...
+      const hashParams = new URLSearchParams(
+        redirectUrl.hash.split('?')[1] || '',
+      );
+      expect(redirectUrl.hash).toContain('#/proconnect-callback');
+      expect(hashParams.get('error')).toBe('Invalid state');
     });
   });
 
-  describe('GET /logout', () => {
+  describe('GET /proconnect/logout', () => {
     it('should redirect to ProConnect logout URL', async () => {
       const mockLogoutUrl =
         'https://proconnect.example.com/logout?id_token_hint=token123';
@@ -211,7 +223,7 @@ describe('ProConnect module', () => {
         .mockResolvedValueOnce(mockLogoutUrl);
 
       const response = await request(app.getHttpServer())
-        .get('/logout')
+        .get('/proconnect/logout')
         .query({ idToken: 'token123' })
         .expect(302);
 
@@ -241,16 +253,21 @@ describe('ProConnect module', () => {
         given_name: 'Marie',
         usual_name: 'Martin',
         siret: '99988877766655',
+        organizational_unit: 'SDIS 77',
       };
 
       // Mock only the OIDC exchange part, let the source logic run for real
       const mockClient = {
+        issuer: { metadata: { issuer: 'https://test-issuer' } },
         callback: jest.fn().mockResolvedValue({ access_token: 'at' }),
         userinfo: jest.fn().mockResolvedValue(mockUserInfo),
       };
       jest
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
+      jest
+        .spyOn(proConnectService, 'getOrganizationName')
+        .mockResolvedValue('Mairie Existante');
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -272,15 +289,20 @@ describe('ProConnect module', () => {
         given_name: 'Pierre',
         usual_name: 'Durand',
         siret: '11122233344455',
+        organizational_unit: 'SDIS 77',
       };
 
       const mockClient = {
+        issuer: { metadata: { issuer: 'https://test-issuer' } },
         callback: jest.fn().mockResolvedValue({ access_token: 'at' }),
         userinfo: jest.fn().mockResolvedValue(mockUserInfo),
       };
       jest
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
+      jest
+        .spyOn(proConnectService, 'getOrganizationName')
+        .mockResolvedValue('Commune Nouvelle');
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -290,7 +312,7 @@ describe('ProConnect module', () => {
       );
 
       expect(result.source.id).toBeDefined();
-      expect(result.source.nom).toBe('ProConnect - 11122233344455');
+      expect(result.source.nom).toBe('Commune Nouvelle');
       expect(result.source.token).toBeDefined();
       expect(result.userInfo.email).toBe('new@commune.fr');
 
@@ -315,9 +337,11 @@ describe('ProConnect module', () => {
         given_name: 'No',
         usual_name: 'Siret',
         siret: undefined,
+        organizational_unit: 'SDIS 77',
       };
 
       const mockClient = {
+        issuer: { metadata: { issuer: 'https://test-issuer' } },
         callback: jest.fn().mockResolvedValue({ access_token: 'at' }),
         userinfo: jest.fn().mockResolvedValue(mockUserInfo),
       };
