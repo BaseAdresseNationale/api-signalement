@@ -13,6 +13,11 @@ export interface ProConnectUserInfo {
   organizational_unit: string;
 }
 
+export interface OrganizationInfo {
+  nom: string;
+  isPublic: boolean;
+}
+
 @Injectable()
 export class ProConnectService {
   private readonly logger = new Logger(ProConnectService.name);
@@ -64,7 +69,7 @@ export class ProConnectService {
     };
   }
 
-  async getOrganizationName(siret: string): Promise<string | null> {
+  async getOrganizationInfo(siret: string): Promise<OrganizationInfo | null> {
     const apiUrl = this.configService.get<string>('INSEE_API_URL');
     const apiKey = this.configService.get<string>('INSEE_API_KEY_INTEGRATION');
 
@@ -88,18 +93,27 @@ export class ProConnectService {
       const etablissement = data.etablissement;
       const uniteLegale = etablissement?.uniteLegale;
 
+      let nom: string | null = null;
+
       if (uniteLegale?.denominationUniteLegale) {
-        return uniteLegale.denominationUniteLegale;
+        nom = uniteLegale.denominationUniteLegale;
+      } else if (uniteLegale?.nomUniteLegale) {
+        nom =
+          `${uniteLegale.prenomUsuelUniteLegale || ''} ${uniteLegale.nomUniteLegale}`.trim();
       }
 
-      if (uniteLegale?.nomUniteLegale) {
-        return `${uniteLegale.prenomUsuelUniteLegale || ''} ${uniteLegale.nomUniteLegale}`.trim();
+      if (!nom) {
+        return null;
       }
 
-      return null;
+      const categorieJuridique =
+        uniteLegale?.categorieJuridiqueUniteLegale || '';
+      const isPublic = categorieJuridique.startsWith('7');
+
+      return { nom, isPublic };
     } catch (error) {
       this.logger.error(
-        `Error fetching organization name for SIRET ${siret}: ${error.message}`,
+        `Error fetching organization info for SIRET ${siret}: ${error.message}`,
       );
       return null;
     }
@@ -152,12 +166,19 @@ export class ProConnectService {
       );
     }
 
-    const organizationName = await this.getOrganizationName(userInfo.siret);
+    const organizationInfo = await this.getOrganizationInfo(userInfo.siret);
 
-    if (!organizationName) {
+    if (!organizationInfo) {
       throw new HttpException(
-        `No organization name found for SIRET ${userInfo.siret}`,
+        `No organization found for SIRET ${userInfo.siret}`,
         HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!organizationInfo.isPublic) {
+      throw new HttpException(
+        `Organization with SIRET ${userInfo.siret} is not a public organism`,
+        HttpStatus.FORBIDDEN,
       );
     }
 
@@ -166,7 +187,7 @@ export class ProConnectService {
     if (!source) {
       this.logger.log(`Creating new source for SIRET ${userInfo.siret}`);
       source = await this.sourceService.createOne({
-        nom: organizationName,
+        nom: organizationInfo.nom,
         type: SourceTypeEnum.PRIVATE,
         siret: userInfo.siret,
       });

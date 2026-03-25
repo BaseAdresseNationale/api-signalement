@@ -266,8 +266,8 @@ describe('ProConnect module', () => {
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
       jest
-        .spyOn(proConnectService, 'getOrganizationName')
-        .mockResolvedValue('Mairie Existante');
+        .spyOn(proConnectService, 'getOrganizationInfo')
+        .mockResolvedValue({ nom: 'Mairie Existante', isPublic: true });
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -301,8 +301,8 @@ describe('ProConnect module', () => {
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
       jest
-        .spyOn(proConnectService, 'getOrganizationName')
-        .mockResolvedValue('Commune Nouvelle');
+        .spyOn(proConnectService, 'getOrganizationInfo')
+        .mockResolvedValue({ nom: 'Commune Nouvelle', isPublic: true });
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -352,6 +352,41 @@ describe('ProConnect module', () => {
       await expect(
         proConnectService.handleCallback('code', 's', 's', 'n'),
       ).rejects.toThrow('No SIRET found in user info');
+    });
+
+    it('should throw when organization is not a public organism', async () => {
+      const mockUserInfo: ProConnectUserInfo = {
+        sub: 'user-private',
+        email: 'private@entreprise.fr',
+        given_name: 'Paul',
+        usual_name: 'Privé',
+        siret: '55566677788899',
+        organizational_unit: 'Direction',
+      };
+
+      const mockClient = {
+        issuer: { metadata: { issuer: 'https://test-issuer' } },
+        callback: jest.fn().mockResolvedValue({ access_token: 'at' }),
+        userinfo: jest.fn().mockResolvedValue(mockUserInfo),
+      };
+      jest
+        .spyOn(proConnectService, 'getClient')
+        .mockResolvedValue(mockClient as any);
+      jest
+        .spyOn(proConnectService, 'getOrganizationInfo')
+        .mockResolvedValue({ nom: 'Entreprise Privée SAS', isPublic: false });
+
+      await expect(
+        proConnectService.handleCallback('code', 'state', 'state', 'nonce'),
+      ).rejects.toThrow(
+        'Organization with SIRET 55566677788899 is not a public organism',
+      );
+
+      // Verify no source was created
+      const source = await sourceRepository.findOne({
+        where: { siret: '55566677788899' },
+      });
+      expect(source).toBeNull();
     });
   });
 });

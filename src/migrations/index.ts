@@ -5,7 +5,7 @@ import { COG2025_1750325214122 } from './1750325214122-cog-2025';
 import { FixNumeroStringInChangesRequested1753283848477 } from './1753283848477-fix-numero-string-in-changes-requested';
 import { MakeExistingLocationNullable1753954345161 } from './1753954345161-make-existing-location-nullable';
 import { SingleTableInheritance1773308681996 } from './1773308681996-single-table-inheritance';
-import { AddSourceSiret1710688000000 } from './1710688000000-add-source-siret';
+import { AddSourceSiret1774447851299 } from './1774447851299-add-source-siret';
 
 export const migrations = [
   PostGisAddSignalementPoint1741898533813,
@@ -15,5 +15,5 @@ export const migrations = [
   FixNumeroStringInChangesRequested1753283848477,
   MakeExistingLocationNullable1753954345161,
   SingleTableInheritance1773308681996,
-  AddSourceSiret1710688000000,
+  AddSourceSiret1774447851299,
 ];
