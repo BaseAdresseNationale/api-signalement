@@ -51,8 +51,7 @@ export class ProConnectService {
           '/proconnect/callback',
       ],
       post_logout_redirect_uris: [
-        this.configService.get<string>('MES_SIGNALEMENTS_URL') +
-          '/?proconnect-logout=success',
+        this.configService.get<string>('MES_SIGNALEMENTS_URL'),
       ],
       response_types: ['code'],
       id_token_signed_response_alg: 'RS256',
@@ -210,9 +209,9 @@ export class ProConnectService {
 
   async getLogoutUrl(idTokenHint: string): Promise<string> {
     const client = await this.getClient();
-    const postLogoutRedirectUri =
-      this.configService.get<string>('MES_SIGNALEMENTS_URL') +
-      '/?proconnect-logout=success';
+    const postLogoutRedirectUri = this.configService.get<string>(
+      'MES_SIGNALEMENTS_URL',
+    );
 
     return client.endSessionUrl({
       id_token_hint: idTokenHint,
