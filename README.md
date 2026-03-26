@@ -89,6 +89,7 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `SMTP_FROM`                   | Expéditeur SMTP                                                                                             |
 | `PORT`                        | Port de l'api                                                                                               |
 | `API_SIGNALEMENT_URL`         | Url de l'api                                                                                                |
+| `MES_SIGNALEMENTS_URL`        | Url de l'interface                                                                                          |
 | `RESET_COMMUNE_FOR_WEBINAIRE` | Commune à réinitialiser toutes les semaines pour les webinaires (à paramétrer uniquement sur l'env de démo) |
 | `PROCONNECT_CLIENT_ID`        | Client ID ProConnect                                                                                        |
 | `PROCONNECT_CLIENT_SECRET`    | Client Secret Proconnect                                                                                    |
