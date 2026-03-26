@@ -19,6 +19,7 @@ import { promisify } from 'util';
 import * as zlib from 'zlib';
 import * as vtpbf from 'vt-pbf';
 import { TilesService, TilesLayerEnum } from './tiles.service';
+import { CommuneStatusCacheService } from '../setting/commune-status-cache.service';
 import { ReportStatusEnum } from '../../common/report-status.enum';
 
 const gzip = promisify(zlib.gzip);
@@ -26,7 +27,10 @@ const gzip = promisify(zlib.gzip);
 @Controller('tiles')
 @ApiTags('tiles')
 export class TilesController {
-  constructor(private tilesService: TilesService) {}
+  constructor(
+    private tilesService: TilesService,
+    private communeStatusCacheService: CommuneStatusCacheService,
+  ) {}
 
   @Get('/:z/:x/:y.pbf')
   @ApiOperation({
@@ -48,7 +52,7 @@ export class TilesController {
     enum: TilesLayerEnum,
     isArray: true,
     description:
-      'Layers to include in the tiles (defaults to both alerts and signalements)',
+      'Layers to include in the tiles (defaults to alerts and signalements)',
     example: [TilesLayerEnum.ALERTS, TilesLayerEnum.SIGNALEMENTS],
   })
   @ApiResponse({
@@ -89,6 +93,61 @@ export class TilesController {
     }
 
     const pbf = vtpbf.fromGeojsonVt(layerTiles);
+
+    const compressedPbf = await gzip(Buffer.from(pbf));
+
+    return res
+      .set({
+        'Content-Type': 'application/x-protobuf',
+        'Content-Encoding': 'gzip',
+      })
+      .send(compressedPbf);
+  }
+
+  @Get('/commune-status/:z/:x/:y.pbf')
+  @ApiOperation({
+    summary:
+      'Get vector tiles with commune status (enabled communes for a given source)',
+    operationId: 'getCommuneStatusTiles',
+  })
+  @ApiParam({ name: 'z', required: true, type: String })
+  @ApiParam({ name: 'x', required: true, type: String })
+  @ApiParam({ name: 'y', required: true, type: String })
+  @ApiQuery({
+    name: 'sourceId',
+    required: true,
+    type: String,
+    description: 'Source ID to filter commune status',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'PBF vector tile with commune-status layer',
+  })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'No data for this tile',
+  })
+  async getCommuneStatusTiles(
+    @Query('sourceId') sourceId: string,
+    @Param('z') z: string,
+    @Param('x') x: string,
+    @Param('y') y: string,
+    @Res() res: Response,
+  ) {
+    const tile = this.communeStatusCacheService.getTileForSource(
+      parseInt(z),
+      parseInt(x),
+      parseInt(y),
+      sourceId,
+    );
+
+    // console.log('Tile requested for sourceId:', sourceId, 'Tile found:', tile);
+
+    if (!tile) {
+      return res.status(HttpStatus.NO_CONTENT).send();
+    }
+
+    const pbf = vtpbf.fromGeojsonVt({ 'commune-status': tile });
 
     const compressedPbf = await gzip(Buffer.from(pbf));
 

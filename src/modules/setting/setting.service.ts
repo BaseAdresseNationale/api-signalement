@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
+import { Revision } from '../api-depot/api-depot.types';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './setting.entity';
 import { ApiDepotService } from '../api-depot/api-depot.service';
@@ -8,6 +9,7 @@ import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { SourceService } from '../source/source.service';
 import { EnabledListDTO } from './dto/enabled-list.dto';
+import { CommuneStatusCacheService } from './commune-status-cache.service';
 
 const ObjectIdRE = new RegExp('^[0-9a-fA-F]{24}$');
 
@@ -18,6 +20,7 @@ export class SettingService {
     private readonly settingsRepository: Repository<Setting>,
     private readonly apiDepotService: ApiDepotService,
     private readonly sourceService: SourceService,
+    private readonly communeStatusCacheService: CommuneStatusCacheService,
   ) {}
 
   getCommuneSettingsKey(codeCommune: string): string {
@@ -186,6 +189,8 @@ export class SettingService {
 
     await this.settingsRepository.save(setting);
 
+    this.communeStatusCacheService.refreshCache();
+
     return setting.content as CommuneSettingsDTO;
   }
 
@@ -229,6 +234,139 @@ export class SettingService {
       await this.settingsRepository.save(setting);
     }
 
+    this.communeStatusCacheService.refreshCache();
+
     return updatedEnabledList;
+  }
+
+  async computeAllCommuneStatuses(): Promise<
+    Map<
+      string,
+      {
+        disabled: boolean;
+        mode?: SignalementSubmissionMode;
+        filteredSources?: string[];
+      }
+    >
+  > {
+    const [
+      allRevisions,
+      communeSettingsList,
+      moissonneurWhitelist,
+      apiDepotClientWhitelist,
+    ] = await Promise.all([
+      this.apiDepotService.getAllCurrentRevisions(),
+      this.settingsRepository.find({
+        where: { name: Like('%-settings') },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
+      }),
+    ]);
+
+    const communeSettingsMap = new Map<string, CommuneSettingsDTO>();
+    for (const setting of communeSettingsList) {
+      const codeCommune = setting.name.replace('-settings', '');
+      communeSettingsMap.set(
+        codeCommune,
+        setting.content as CommuneSettingsDTO,
+      );
+    }
+
+    const moissonneurWhitelistContent =
+      (moissonneurWhitelist?.content as string[]) || [];
+    const apiDepotClientWhitelistContent =
+      (apiDepotClientWhitelist?.content as string[]) || [];
+
+    const result = new Map<
+      string,
+      {
+        disabled: boolean;
+        mode?: SignalementSubmissionMode;
+        filteredSources?: string[];
+      }
+    >();
+
+    // Index revisions by codeCommune
+    const revisionsByCommune = new Map<string, Revision>();
+    for (const revision of allRevisions) {
+      revisionsByCommune.set(revision.codeCommune, revision);
+    }
+
+    // Process all communes that have either a revision or custom settings
+    const allCodeCommunes = new Set([
+      ...revisionsByCommune.keys(),
+      ...communeSettingsMap.keys(),
+    ]);
+
+    for (const codeCommune of allCodeCommunes) {
+      const communeSettings = communeSettingsMap.get(codeCommune);
+
+      // Settings override takes priority
+      if (communeSettings) {
+        if (communeSettings.disabled) {
+          result.set(codeCommune, { disabled: true });
+          continue;
+        }
+        result.set(codeCommune, {
+          disabled: false,
+          mode: communeSettings.mode || SignalementSubmissionMode.FULL,
+          ...(communeSettings.filteredSources?.length && {
+            filteredSources: communeSettings.filteredSources,
+          }),
+        });
+        continue;
+      }
+
+      const revision = revisionsByCommune.get(codeCommune);
+
+      if (!revision) {
+        result.set(codeCommune, { disabled: true });
+        continue;
+      }
+
+      // Published via mes-adresses
+      if (
+        revision.context?.extras?.balId &&
+        ObjectIdRE.test(revision.context.extras.balId)
+      ) {
+        result.set(codeCommune, {
+          disabled: false,
+          mode: SignalementSubmissionMode.FULL,
+        });
+        continue;
+      }
+
+      // Published via moissonneur
+      if (revision.context?.extras?.sourceId) {
+        const isEnabled = moissonneurWhitelistContent.includes(
+          revision.context.extras.sourceId,
+        );
+        result.set(codeCommune, {
+          disabled: !isEnabled,
+          ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+        });
+        continue;
+      }
+
+      // Published via API depot client
+      if (revision.client?.id) {
+        const isEnabled = apiDepotClientWhitelistContent.includes(
+          revision.client.id,
+        );
+        result.set(codeCommune, {
+          disabled: !isEnabled,
+          ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+        });
+        continue;
+      }
+
+      result.set(codeCommune, { disabled: true });
+    }
+
+    return result;
   }
 }
