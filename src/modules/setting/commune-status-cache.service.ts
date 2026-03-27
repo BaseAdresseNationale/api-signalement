@@ -12,7 +12,6 @@ import { SettingService } from './setting.service';
 @Injectable()
 export class CommuneStatusCacheService implements OnModuleInit {
   private cachedIndex: ReturnType<typeof GeoJSONVT> = null;
-  private communesWithContours: GeoJSON.FeatureCollection = null;
   private readonly logger = new Logger(CommuneStatusCacheService.name);
 
   constructor(
@@ -22,8 +21,7 @@ export class CommuneStatusCacheService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      this.communesWithContours = await this.fetchCommuneContours();
-      await this.buildCache(this.communesWithContours);
+      await this.buildCache();
     } catch (err) {
       this.logger.error(
         'Failed to build commune status cache on init',
@@ -35,18 +33,16 @@ export class CommuneStatusCacheService implements OnModuleInit {
   @Cron(CronExpression.EVERY_HOUR)
   async refreshCache() {
     try {
-      await this.buildCache(this.communesWithContours);
+      await this.buildCache();
     } catch (err) {
       this.logger.error('Failed to refresh commune status cache', err.message);
     }
   }
 
-  private async buildCache(communes?: GeoJSON.FeatureCollection) {
-    this.logger.log('Building commune status cache...');
+  private async buildCache() {
+    this.logger.log('Building commune status index cache...');
 
-    if (!communes) {
-      communes = await this.fetchCommuneContours();
-    }
+    const communes = await this.fetchCommuneContours();
 
     const statuses = await this.settingService.computeAllCommuneStatuses();
 
@@ -82,7 +78,7 @@ export class CommuneStatusCacheService implements OnModuleInit {
 
     this.cachedIndex = GeoJSONVT(
       { type: 'FeatureCollection', features },
-      { maxZoom: 11, indexMaxZoom: 11 },
+      { maxZoom: 11, indexMaxZoom: 9 },
     );
 
     this.logger.log(
