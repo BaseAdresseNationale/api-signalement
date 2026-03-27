@@ -106,19 +106,12 @@ export class TilesController {
 
   @Get('/commune-status/:z/:x/:y.pbf')
   @ApiOperation({
-    summary:
-      'Get vector tiles with commune status (enabled communes for a given source)',
+    summary: 'Get vector tiles with commune status (enabled communes)',
     operationId: 'getCommuneStatusTiles',
   })
   @ApiParam({ name: 'z', required: true, type: String })
   @ApiParam({ name: 'x', required: true, type: String })
   @ApiParam({ name: 'y', required: true, type: String })
-  @ApiQuery({
-    name: 'sourceId',
-    required: true,
-    type: String,
-    description: 'Source ID to filter commune status',
-  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'PBF vector tile with commune-status layer',
@@ -128,7 +121,6 @@ export class TilesController {
     description: 'No data for this tile',
   })
   async getCommuneStatusTiles(
-    @Query('sourceId') sourceId: string,
     @Param('z') z: string,
     @Param('x') x: string,
     @Param('y') y: string,
@@ -138,7 +130,6 @@ export class TilesController {
       parseInt(z),
       parseInt(x),
       parseInt(y),
-      sourceId,
     );
 
     // console.log('Tile requested for sourceId:', sourceId, 'Tile found:', tile);

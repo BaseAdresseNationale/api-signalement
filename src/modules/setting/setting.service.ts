@@ -27,60 +27,38 @@ export class SettingService {
     return `${codeCommune}-settings`;
   }
 
-  async getCommuneStatus(
-    codeCommune: string,
-    sourceId: string,
-  ): Promise<CommuneStatusDTO> {
-    // Check source id
-    await this.sourceService.findOneOrFail(sourceId);
-
-    // First check if the commune is in the disabled list
-    const setting = await this.settingsRepository.findOne({
-      where: { name: this.getCommuneSettingsKey(codeCommune) },
-    });
-
-    const communesSettings = setting?.content as CommuneSettingsDTO;
-
-    if (communesSettings) {
-      if (communesSettings.disabled) {
-        return {
-          disabled: true,
-          message:
-            communesSettings.message ||
-            'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.',
-        };
-      } else if (communesSettings.filteredSources?.includes(sourceId)) {
-        return {
-          disabled: true,
-          message:
-            communesSettings.message ||
-            'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
-        };
-      } else {
-        return {
-          disabled: false,
-          mode: communesSettings.mode || SignalementSubmissionMode.FULL,
-        };
+  private determineCommuneStatus(
+    communeSettings: CommuneSettingsDTO | null,
+    revision: Revision | null,
+    moissonneurWhitelistContent: string[],
+    apiDepotClientWhitelistContent: string[],
+  ): {
+    disabled: boolean;
+    mode?: SignalementSubmissionMode;
+    filteredSources?: string[];
+  } {
+    // Settings override takes priority
+    if (communeSettings) {
+      if (communeSettings.disabled) {
+        return { disabled: true };
       }
-    }
-
-    // Then get current revision to know how commune is published
-    const currentRevision =
-      await this.apiDepotService.getCurrentRevision(codeCommune);
-
-    // If the commune is not published, signalement is disabled
-    if (!currentRevision) {
       return {
-        disabled: true,
-        message:
-          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie.",
+        disabled: false,
+        mode: communeSettings.mode || SignalementSubmissionMode.FULL,
+        ...(communeSettings.filteredSources?.length && {
+          filteredSources: communeSettings.filteredSources,
+        }),
       };
     }
 
-    // If commune is published via mes-adresses, signalement is enabled
+    if (!revision) {
+      return { disabled: true };
+    }
+
+    // Published via mes-adresses
     if (
-      currentRevision?.context?.extras?.balId &&
-      ObjectIdRE.test(currentRevision.context.extras.balId)
+      revision.context?.extras?.balId &&
+      ObjectIdRE.test(revision.context.extras.balId)
     ) {
       return {
         disabled: false,
@@ -88,62 +66,98 @@ export class SettingService {
       };
     }
 
-    // If the commune is published via moissonneur, check if the source is in the white list
-    if (currentRevision?.context?.extras?.sourceId) {
-      const moissonneurSourceWhiteList = await this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
-      });
-
-      const moissonneurSourceWhiteListContent =
-        moissonneurSourceWhiteList.content as string[];
-
-      const isSourceEnabled = moissonneurSourceWhiteListContent.includes(
-        currentRevision.context.extras.sourceId,
+    // Published via moissonneur
+    if (revision.context?.extras?.sourceId) {
+      const isEnabled = moissonneurWhitelistContent.includes(
+        revision.context.extras.sourceId,
       );
-
-      if (isSourceEnabled) {
-        return {
-          disabled: false,
-          mode: SignalementSubmissionMode.LIGHT,
-        };
-      } else {
-        return {
-          disabled: true,
-          message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
-        };
-      }
+      return {
+        disabled: !isEnabled,
+        ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+      };
     }
 
-    // If the commune is published via API depot, check if the client is in the white list
-    if (currentRevision?.client?.id) {
-      const apiDepotClientEnabled = await this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
-      });
-
-      const apiDepotClientEnabledContent =
-        apiDepotClientEnabled.content as string[];
-
-      const isClientEnabled = apiDepotClientEnabledContent.includes(
-        currentRevision.client.id,
+    // Published via API depot client
+    if (revision.client?.id) {
+      const isEnabled = apiDepotClientWhitelistContent.includes(
+        revision.client.id,
       );
+      return {
+        disabled: !isEnabled,
+        ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+      };
+    }
 
-      if (isClientEnabled) {
-        return {
-          disabled: false,
-          mode: SignalementSubmissionMode.LIGHT,
-        };
+    return { disabled: true };
+  }
+
+  async getCommuneStatus(
+    codeCommune: string,
+    sourceId: string,
+  ): Promise<CommuneStatusDTO> {
+    // Check source id
+    await this.sourceService.findOneOrFail(sourceId);
+
+    const [
+      setting,
+      currentRevision,
+      moissonneurWhitelist,
+      apiDepotClientWhitelist,
+    ] = await Promise.all([
+      this.settingsRepository.findOne({
+        where: { name: this.getCommuneSettingsKey(codeCommune) },
+      }),
+      this.apiDepotService.getCurrentRevision(codeCommune),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
+      }),
+    ]);
+
+    const communeSettings = (setting?.content as CommuneSettingsDTO) || null;
+    const moissonneurWhitelistContent =
+      (moissonneurWhitelist?.content as string[]) || [];
+    const apiDepotClientWhitelistContent =
+      (apiDepotClientWhitelist?.content as string[]) || [];
+
+    const status = this.determineCommuneStatus(
+      communeSettings,
+      currentRevision,
+      moissonneurWhitelistContent,
+      apiDepotClientWhitelistContent,
+    );
+
+    // Handle sourceId-specific filtering
+    if (!status.disabled && status.filteredSources?.includes(sourceId)) {
+      return {
+        disabled: true,
+        message:
+          communeSettings?.message ||
+          'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
+      };
+    }
+
+    if (status.disabled) {
+      let message: string | undefined;
+      if (communeSettings?.disabled) {
+        message =
+          communeSettings.message ||
+          'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.';
+      } else if (!currentRevision) {
+        message =
+          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie.";
       } else {
-        return {
-          disabled: true,
-          message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
-        };
+        message =
+          'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.';
       }
+      return { disabled: true, message };
     }
 
     return {
-      disabled: true,
+      disabled: false,
+      mode: status.mode,
     };
   }
 
@@ -303,68 +317,18 @@ export class SettingService {
     ]);
 
     for (const codeCommune of allCodeCommunes) {
-      const communeSettings = communeSettingsMap.get(codeCommune);
+      const communeSettings = communeSettingsMap.get(codeCommune) || null;
+      const revision = revisionsByCommune.get(codeCommune) || null;
 
-      // Settings override takes priority
-      if (communeSettings) {
-        if (communeSettings.disabled) {
-          result.set(codeCommune, { disabled: true });
-          continue;
-        }
-        result.set(codeCommune, {
-          disabled: false,
-          mode: communeSettings.mode || SignalementSubmissionMode.FULL,
-          ...(communeSettings.filteredSources?.length && {
-            filteredSources: communeSettings.filteredSources,
-          }),
-        });
-        continue;
-      }
-
-      const revision = revisionsByCommune.get(codeCommune);
-
-      if (!revision) {
-        result.set(codeCommune, { disabled: true });
-        continue;
-      }
-
-      // Published via mes-adresses
-      if (
-        revision.context?.extras?.balId &&
-        ObjectIdRE.test(revision.context.extras.balId)
-      ) {
-        result.set(codeCommune, {
-          disabled: false,
-          mode: SignalementSubmissionMode.FULL,
-        });
-        continue;
-      }
-
-      // Published via moissonneur
-      if (revision.context?.extras?.sourceId) {
-        const isEnabled = moissonneurWhitelistContent.includes(
-          revision.context.extras.sourceId,
-        );
-        result.set(codeCommune, {
-          disabled: !isEnabled,
-          ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
-        });
-        continue;
-      }
-
-      // Published via API depot client
-      if (revision.client?.id) {
-        const isEnabled = apiDepotClientWhitelistContent.includes(
-          revision.client.id,
-        );
-        result.set(codeCommune, {
-          disabled: !isEnabled,
-          ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
-        });
-        continue;
-      }
-
-      result.set(codeCommune, { disabled: true });
+      result.set(
+        codeCommune,
+        this.determineCommuneStatus(
+          communeSettings,
+          revision,
+          moissonneurWhitelistContent,
+          apiDepotClientWhitelistContent,
+        ),
+      );
     }
 
     return result;

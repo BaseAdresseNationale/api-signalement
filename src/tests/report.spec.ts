@@ -38,6 +38,7 @@ const mockAPIDepotService = {
       extras: { balId: '614b3385e1d1f2602d7ad284' },
     },
   }),
+  getAllCurrentRevisions: jest.fn().mockResolvedValue([]),
 };
 @Module({
   providers: [
