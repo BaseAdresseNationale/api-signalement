@@ -26,11 +26,18 @@ import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { EnabledListKeys } from './setting.type';
 import { EnabledListDTO } from './dto/enabled-list.dto';
+import {
+  CommuneSettingsCacheService,
+  CommuneSettingsMap,
+} from './commune-settings-cache.service';
 
 @ApiTags('settings')
 @Controller('settings')
 export class SettingController {
-  constructor(private settingService: SettingService) {}
+  constructor(
+    private settingService: SettingService,
+    private communeSettingsCacheService: CommuneSettingsCacheService,
+  ) {}
 
   @Get('commune-status/:codeCommune')
   @ApiOperation({
@@ -112,6 +119,28 @@ export class SettingController {
       codeCommune,
       communeSettings,
     );
+
+    res.status(HttpStatus.OK).json(settings);
+  }
+
+  @Get('commune-settings')
+  @ApiOperation({
+    summary: 'Get the settings of all communes',
+    operationId: 'getAllCommuneSettings',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Map of commune codes to their settings',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        $ref: '#/components/schemas/CommuneSettingsDTO',
+      },
+    },
+  })
+  async getAllCommuneSettings(@Res() res: Response) {
+    const settings: CommuneSettingsMap =
+      this.communeSettingsCacheService.getCachedSettings() || {};
 
     res.status(HttpStatus.OK).json(settings);
   }

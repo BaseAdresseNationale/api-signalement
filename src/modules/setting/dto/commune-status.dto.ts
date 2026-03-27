@@ -1,12 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 import { SignalementSubmissionMode } from '../setting.type';
 
 export class CommuneStatusDTO {
   @ApiProperty({ required: true, nullable: false })
+  @IsBoolean()
   disabled: boolean;
 
   @ApiProperty({ required: false })
+  @IsOptional()
   message?: string;
 
   @ApiProperty({
@@ -15,5 +17,6 @@ export class CommuneStatusDTO {
     enum: SignalementSubmissionMode,
   })
   @IsEnum(SignalementSubmissionMode)
+  @IsOptional()
   mode?: SignalementSubmissionMode;
 }

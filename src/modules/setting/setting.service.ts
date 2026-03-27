@@ -9,7 +9,7 @@ import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { SourceService } from '../source/source.service';
 import { EnabledListDTO } from './dto/enabled-list.dto';
-import { CommuneStatusCacheService } from './commune-status-cache.service';
+import { CommuneSettingsCacheService } from './commune-settings-cache.service';
 
 const ObjectIdRE = new RegExp('^[0-9a-fA-F]{24}$');
 
@@ -20,7 +20,7 @@ export class SettingService {
     private readonly settingsRepository: Repository<Setting>,
     private readonly apiDepotService: ApiDepotService,
     private readonly sourceService: SourceService,
-    private readonly communeStatusCacheService: CommuneStatusCacheService,
+    private readonly communeSettingsCacheService: CommuneSettingsCacheService,
   ) {}
 
   getCommuneSettingsKey(codeCommune: string): string {
@@ -203,7 +203,7 @@ export class SettingService {
 
     await this.settingsRepository.save(setting);
 
-    this.communeStatusCacheService.refreshCache();
+    this.communeSettingsCacheService.refreshCache();
 
     return setting.content as CommuneSettingsDTO;
   }
@@ -248,7 +248,7 @@ export class SettingService {
       await this.settingsRepository.save(setting);
     }
 
-    this.communeStatusCacheService.refreshCache();
+    this.communeSettingsCacheService.refreshCache();
 
     return updatedEnabledList;
   }
@@ -321,7 +321,7 @@ export class SettingService {
       const revision = revisionsByCommune.get(codeCommune) || null;
 
       // Dirty hack to test on staging while waiting for the balId to be added in the revision context on production. Should be removed once the balId is available in production revisions.
-      if (revision.clientId === '651c1496142003dd4ba592ff') {
+      if (revision?.clientId === '651c1496142003dd4ba592ff') {
         revision.context = {
           extras: {
             balId: '614b3385e1d1f2602d7ad284',
