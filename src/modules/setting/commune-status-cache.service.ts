@@ -94,7 +94,7 @@ export class CommuneStatusCacheService implements OnModuleInit {
     this.logger.log('Fetching commune contours...');
 
     const response = await fetch(
-      'https://object.data.gouv.fr/contours-administratifs/2025/geojson/communes-100m.geojson',
+      'https://object.data.gouv.fr/contours-administratifs/2025/geojson/communes-1000m.geojson',
     );
     const communes: GeoJSON.FeatureCollection = await response.json();
 
