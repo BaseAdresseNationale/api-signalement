@@ -28,11 +28,7 @@ export class ApiDepotService {
 
   public async getAllCurrentRevisions(): Promise<Revision[]> {
     const { data: revisions } = await firstValueFrom(
-      this.httpService.get<Revision[]>('/current-revisions').pipe(
-        catchError((error: AxiosError) => {
-          return of({ data: [] as Revision[] });
-        }),
-      ),
+      this.httpService.get<Revision[]>('/current-revisions'),
     );
 
     return revisions;
