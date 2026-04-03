@@ -16,6 +16,10 @@ export class Source extends BaseEntity {
   @Column('enum', { enum: SourceTypeEnum, nullable: false })
   type: SourceTypeEnum;
 
+  @ApiProperty({ required: false, nullable: true })
+  @Column({ nullable: true, unique: true })
+  siret?: string;
+
   @Column({ nullable: true, select: false })
   token?: string;
 
@@ -33,9 +37,10 @@ export class Source extends BaseEntity {
   constructor(createInput: CreateSourceDTO) {
     super();
     if (createInput) {
-      const { nom, type } = createInput;
+      const { nom, type, siret } = createInput;
       this.nom = nom;
       this.type = type;
+      this.siret = siret;
       if (type === SourceTypeEnum.PRIVATE) {
         this.token = generateToken();
       }

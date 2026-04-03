@@ -64,9 +64,9 @@ describe('Source module', () => {
   });
 
   afterAll(async () => {
-    await postgresClient.end();
-    await postgresContainer.stop();
-    await app.close();
+    await app?.close();
+    await postgresClient?.end();
+    await postgresContainer?.stop();
   });
 
   afterEach(async () => {
@@ -78,6 +78,7 @@ describe('Source module', () => {
       const createSourceDTO: CreateSourceDTO = {
         type: SourceTypeEnum.PRIVATE,
         nom: 'SIG Ville',
+        siret: '12345678901234',
       };
 
       await request(app.getHttpServer())
@@ -90,6 +91,7 @@ describe('Source module', () => {
       const createSourceDTO: CreateSourceDTO = {
         type: SourceTypeEnum.PRIVATE,
         nom: 'SIG Ville',
+        siret: '12345678901234',
       };
 
       const response = await request(app.getHttpServer())
@@ -103,6 +105,7 @@ describe('Source module', () => {
         nom: 'SIG Ville',
         token: expect.any(String),
         type: SourceTypeEnum.PRIVATE,
+        siret: '12345678901234',
         deletedAt: null,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -125,11 +128,46 @@ describe('Source module', () => {
         id: expect.any(String),
         nom: 'Pifomètre',
         token: null,
+        siret: null,
         type: SourceTypeEnum.PUBLIC,
         deletedAt: null,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
+    });
+
+    it('should reject a private source without siret', async () => {
+      const createSourceDTO = {
+        type: SourceTypeEnum.PRIVATE,
+        nom: 'SIG Ville',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(400);
+
+      expect(response.body.message).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('siret is required for PRIVATE sources'),
+        ]),
+      );
+    });
+
+    it('should create a public source without siret', async () => {
+      const createSourceDTO: CreateSourceDTO = {
+        type: SourceTypeEnum.PUBLIC,
+        nom: 'Source Publique',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body.siret).toBeNull();
     });
   });
 
@@ -148,6 +186,7 @@ describe('Source module', () => {
         new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
         }),
       );
 
@@ -161,6 +200,7 @@ describe('Source module', () => {
           nom: source1.nom,
           type: source1.type,
           deletedAt: null,
+          siret: null,
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
         },
@@ -169,6 +209,7 @@ describe('Source module', () => {
           nom: source2.nom,
           type: source2.type,
           deletedAt: null,
+          siret: source2.siret,
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
         },
@@ -189,6 +230,7 @@ describe('Source module', () => {
         new Source({
           nom: 'SIG Ville',
           type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
         }),
       );
 
@@ -204,6 +246,7 @@ describe('Source module', () => {
           deletedAt: null,
           createdAt: expect.any(String),
           updatedAt: expect.any(String),
+          siret: null,
         },
       ]);
     });
@@ -230,6 +273,7 @@ describe('Source module', () => {
         deletedAt: null,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
+        siret: null,
       });
     });
 

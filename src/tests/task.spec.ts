@@ -125,7 +125,9 @@ describe('Task module', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
+    await postgresClient?.end();
+    await postgresContainer?.stop();
   });
 
   afterEach(async () => {

@@ -14,6 +14,7 @@ import { StatsModule } from './modules/stats/stats.module';
 import { AlertModule } from './modules/alert/alert.module';
 import { TilesModule } from './modules/tiles/tiles.module';
 import { ReportModule } from './modules/report/report.module';
+import { ProConnectModule } from './modules/proconnect/proconnect.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ReportModule } from './modules/report/report.module';
     TilesModule,
     ReportModule,
     StatsModule,
+    ProConnectModule,
   ],
   controllers: [],
   providers: [],
