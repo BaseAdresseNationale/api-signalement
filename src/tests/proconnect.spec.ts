@@ -25,7 +25,6 @@ import {
 } from '../modules/proconnect/proconnect.service';
 import { InseeService } from '../modules/proconnect/insee.service';
 import { ProConnectModule } from '../modules/proconnect/proconnect.module';
-import * as cookieParser from 'cookie-parser';
 
 const MES_SIGNALEMENTS_URL = 'http://localhost:7777';
 
@@ -83,7 +82,6 @@ describe('ProConnect module', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
