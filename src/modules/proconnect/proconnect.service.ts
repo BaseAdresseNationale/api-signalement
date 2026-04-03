@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Issuer, Client, generators } from 'openid-client';
 import { SourceService } from '../source/source.service';
 import { SourceTypeEnum } from '../source/source.types';
+import { InseeService } from './insee.service';
 
 export interface ProConnectUserInfo {
   sub: string;
@@ -26,6 +27,7 @@ export class ProConnectService {
   constructor(
     private readonly configService: ConfigService,
     private readonly sourceService: SourceService,
+    private readonly inseeService: InseeService,
   ) {}
 
   async getClient(): Promise<Client> {
@@ -68,61 +70,11 @@ export class ProConnectService {
     };
   }
 
-  async getOrganizationInfo(siret: string): Promise<OrganizationInfo | null> {
-    const apiUrl = this.configService.get<string>('INSEE_API_URL');
-    const apiKey = this.configService.get<string>('INSEE_API_KEY_INTEGRATION');
-
-    if (!apiKey || !apiUrl) {
-      return null;
-    }
-
-    try {
-      const response = await fetch(`${apiUrl}/siret/${siret}`, {
-        headers: {
-          'X-INSEE-Api-Key-Integration': apiKey,
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = await response.json();
-      const etablissement = data.etablissement;
-      const uniteLegale = etablissement?.uniteLegale;
-
-      let nom: string | null = null;
-
-      if (uniteLegale?.denominationUniteLegale) {
-        nom = uniteLegale.denominationUniteLegale;
-      } else if (uniteLegale?.nomUniteLegale) {
-        nom =
-          `${uniteLegale.prenomUsuelUniteLegale || ''} ${uniteLegale.nomUniteLegale}`.trim();
-      }
-
-      if (!nom) {
-        return null;
-      }
-
-      const categorieJuridique =
-        uniteLegale?.categorieJuridiqueUniteLegale || '';
-      const isPublic = categorieJuridique.startsWith('7');
-
-      return { nom, isPublic };
-    } catch (error) {
-      this.logger.error(
-        `Error fetching organization info for SIRET ${siret}: ${error.message}`,
-      );
-      return null;
-    }
-  }
-
   async getAuthorizationUrl(state: string, nonce: string): Promise<string> {
     const client = await this.getClient();
 
     return client.authorizationUrl({
-      scope: 'openid given_name usual_name email  siret',
+      scope: 'openid given_name usual_name email siret',
       state,
       nonce,
       acr_values: 'eidas1',
@@ -165,7 +117,9 @@ export class ProConnectService {
       );
     }
 
-    const organizationInfo = await this.getOrganizationInfo(userInfo.siret);
+    const organizationInfo = await this.inseeService.getOrganizationInfo(
+      userInfo.siret,
+    );
 
     if (!organizationInfo) {
       throw new HttpException(

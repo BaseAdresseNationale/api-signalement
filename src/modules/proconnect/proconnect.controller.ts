@@ -88,7 +88,7 @@ export class ProConnectController {
         'MES_SIGNALEMENTS_URL',
       );
       res.redirect(
-        `${frontendUrl}/#/proconnect-callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`,
+        `${frontendUrl}/#/proconnect-callback?error=${encodeURIComponent('Authentication failed')}`,
       );
     }
   }
