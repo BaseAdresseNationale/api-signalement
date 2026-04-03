@@ -62,6 +62,7 @@ describe('ProConnect module', () => {
             () => ({
               MES_SIGNALEMENTS_URL,
               API_SIGNALEMENT_URL: 'http://localhost:5005',
+              PROCONNECT_CLIENT_SECRET: 'test-secret',
             }),
           ],
           ignoreEnvFile: true,
@@ -116,24 +117,6 @@ describe('ProConnect module', () => {
         .expect(302);
 
       expect(response.headers.location).toBe(mockAuthUrl);
-
-      // Should set state and nonce cookies
-      const cookies = response.headers['set-cookie'];
-      expect(cookies).toBeDefined();
-      const cookieStrings = Array.isArray(cookies) ? cookies : [cookies];
-      expect(
-        cookieStrings.some((c: string) => c.includes('proconnect_state')),
-      ).toBe(true);
-      expect(
-        cookieStrings.some((c: string) => c.includes('proconnect_nonce')),
-      ).toBe(true);
-      // Cookies should be HttpOnly
-      expect(
-        cookieStrings.some(
-          (c: string) =>
-            c.includes('proconnect_state') && c.includes('HttpOnly'),
-        ),
-      ).toBe(true);
     });
   });
 
@@ -175,10 +158,6 @@ describe('ProConnect module', () => {
       const response = await request(app.getHttpServer())
         .get('/proconnect/callback')
         .query({ code: 'auth-code', state: 'test-state' })
-        .set('Cookie', [
-          'proconnect_state=test-state',
-          'proconnect_nonce=test-nonce',
-        ])
         .expect(302);
 
       const redirectUrl = new URL(response.headers.location);
@@ -235,6 +214,13 @@ describe('ProConnect module', () => {
   });
 
   describe('ProConnectService.handleCallback (integration)', () => {
+    let signedState: string;
+
+    beforeEach(() => {
+      const params = proConnectService.generateAuthParams();
+      signedState = params.state;
+    });
+
     it('should return existing source when SIRET matches', async () => {
       const source = await createRecording(
         sourceRepository,
@@ -274,9 +260,7 @@ describe('ProConnect module', () => {
 
       const result = await proConnectService.handleCallback(
         'code',
-        'state1',
-        'state1',
-        'nonce1',
+        signedState,
       );
 
       expect(result.source.id).toBe(source.id);
@@ -309,9 +293,7 @@ describe('ProConnect module', () => {
 
       const result = await proConnectService.handleCallback(
         'code',
-        'state2',
-        'state2',
-        'nonce2',
+        signedState,
       );
 
       expect(result.source.id).toBeDefined();
@@ -327,9 +309,9 @@ describe('ProConnect module', () => {
       expect(savedSource.type).toBe(SourceTypeEnum.PRIVATE);
     });
 
-    it('should throw when state does not match', async () => {
+    it('should throw when state is invalid', async () => {
       await expect(
-        proConnectService.handleCallback('code', 'state-a', 'state-b', 'nonce'),
+        proConnectService.handleCallback('code', 'invalid-state'),
       ).rejects.toThrow('Invalid state');
     });
 
@@ -353,7 +335,7 @@ describe('ProConnect module', () => {
         .mockResolvedValue(mockClient as any);
 
       await expect(
-        proConnectService.handleCallback('code', 's', 's', 'n'),
+        proConnectService.handleCallback('code', signedState),
       ).rejects.toThrow('No SIRET found in user info');
     });
 
@@ -380,7 +362,7 @@ describe('ProConnect module', () => {
         .mockResolvedValue({ nom: 'Entreprise Privée SAS', isPublic: false });
 
       await expect(
-        proConnectService.handleCallback('code', 'state', 'state', 'nonce'),
+        proConnectService.handleCallback('code', signedState),
       ).rejects.toThrow(
         'Organization with SIRET 55566677788899 is not a public organism',
       );
