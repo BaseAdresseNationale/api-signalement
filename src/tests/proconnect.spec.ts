@@ -23,6 +23,7 @@ import {
   ProConnectService,
   ProConnectUserInfo,
 } from '../modules/proconnect/proconnect.service';
+import { InseeService } from '../modules/proconnect/insee.service';
 import { ProConnectModule } from '../modules/proconnect/proconnect.module';
 import * as cookieParser from 'cookie-parser';
 
@@ -36,6 +37,7 @@ describe('ProConnect module', () => {
   let postgresClient: Client;
   let sourceRepository: Repository<Source>;
   let proConnectService: ProConnectService;
+  let inseeService: InseeService;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer(
@@ -89,6 +91,7 @@ describe('ProConnect module', () => {
     await app.init();
     sourceRepository = app.get(getRepositoryToken(Source));
     proConnectService = app.get(ProConnectService);
+    inseeService = app.get(InseeService);
   });
 
   afterAll(async () => {
@@ -210,7 +213,7 @@ describe('ProConnect module', () => {
         redirectUrl.hash.split('?')[1] || '',
       );
       expect(redirectUrl.hash).toContain('#/proconnect-callback');
-      expect(hashParams.get('error')).toBe('Invalid state');
+      expect(hashParams.get('error')).toBe('Authentication failed');
     });
   });
 
@@ -266,7 +269,7 @@ describe('ProConnect module', () => {
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
       jest
-        .spyOn(proConnectService, 'getOrganizationInfo')
+        .spyOn(inseeService, 'getOrganizationInfo')
         .mockResolvedValue({ nom: 'Mairie Existante', isPublic: true });
 
       const result = await proConnectService.handleCallback(
@@ -301,7 +304,7 @@ describe('ProConnect module', () => {
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
       jest
-        .spyOn(proConnectService, 'getOrganizationInfo')
+        .spyOn(inseeService, 'getOrganizationInfo')
         .mockResolvedValue({ nom: 'Commune Nouvelle', isPublic: true });
 
       const result = await proConnectService.handleCallback(
@@ -373,7 +376,7 @@ describe('ProConnect module', () => {
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
       jest
-        .spyOn(proConnectService, 'getOrganizationInfo')
+        .spyOn(inseeService, 'getOrganizationInfo')
         .mockResolvedValue({ nom: 'Entreprise Privée SAS', isPublic: false });
 
       await expect(

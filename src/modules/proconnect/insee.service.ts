@@ -9,21 +9,26 @@ export interface OrganizationInfo {
 @Injectable()
 export class InseeService {
   private readonly logger = new Logger(InseeService.name);
+  private readonly apiUrl: string;
+  private readonly apiKey: string;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.apiUrl = this.configService.get<string>('INSEE_API_URL');
+    this.apiKey = this.configService.get<string>('INSEE_API_KEY_INTEGRATION');
+  }
 
   async getOrganizationInfo(siret: string): Promise<OrganizationInfo | null> {
-    const apiUrl = this.configService.get<string>('INSEE_API_URL');
-    const apiKey = this.configService.get<string>('INSEE_API_KEY_INTEGRATION');
-
-    if (!apiKey || !apiUrl) {
+    if (!this.apiKey || !this.apiUrl) {
+      this.logger.warn(
+        'INSEE API configuration is missing. Skipping organization info retrieval.',
+      );
       return null;
     }
 
     try {
-      const response = await fetch(`${apiUrl}/siret/${siret}`, {
+      const response = await fetch(`${this.apiUrl}/siret/${siret}`, {
         headers: {
-          'X-INSEE-Api-Key-Integration': apiKey,
+          'X-INSEE-Api-Key-Integration': this.apiKey,
           Accept: 'application/json',
         },
       });
