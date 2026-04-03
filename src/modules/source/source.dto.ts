@@ -3,9 +3,9 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumberString,
-  IsOptional,
   IsString,
   Length,
+  ValidateIf,
 } from 'class-validator';
 import { SourceTypeEnum } from './source.types';
 
@@ -25,7 +25,8 @@ export class CreateSourceDTO {
   type: SourceTypeEnum;
 
   @ApiProperty({ required: false, nullable: true })
-  @IsOptional()
+  @ValidateIf((o) => o.type === SourceTypeEnum.PRIVATE || o.siret !== undefined)
+  @IsNotEmpty({ message: 'siret is required for PRIVATE sources' })
   @IsNumberString()
   @Length(14, 14)
   siret?: string;

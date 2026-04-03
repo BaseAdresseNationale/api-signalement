@@ -135,6 +135,40 @@ describe('Source module', () => {
         updatedAt: expect.any(String),
       });
     });
+
+    it('should reject a private source without siret', async () => {
+      const createSourceDTO = {
+        type: SourceTypeEnum.PRIVATE,
+        nom: 'SIG Ville',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(400);
+
+      expect(response.body.message).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('siret is required for PRIVATE sources'),
+        ]),
+      );
+    });
+
+    it('should create a public source without siret', async () => {
+      const createSourceDTO: CreateSourceDTO = {
+        type: SourceTypeEnum.PUBLIC,
+        nom: 'Source Publique',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body.siret).toBeNull();
+    });
   });
 
   describe('GET /sources', () => {
