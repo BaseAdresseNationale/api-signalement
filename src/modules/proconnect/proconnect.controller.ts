@@ -1,5 +1,5 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { ProConnectService } from './proconnect.service';
@@ -25,20 +25,6 @@ export class ProConnectController {
       nonce,
     );
 
-    res.cookie('proconnect_state', state, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 5 * 60 * 1000, // 5 minutes
-    });
-
-    res.cookie('proconnect_nonce', nonce, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 5 * 60 * 1000,
-    });
-
     res.redirect(authorizationUrl);
   }
 
@@ -50,24 +36,14 @@ export class ProConnectController {
   @ApiQuery({ name: 'code', required: true, type: String })
   @ApiQuery({ name: 'state', required: true, type: String })
   async loginCallback(
-    @Req() req: Request,
     @Res() res: Response,
     @Query('code') code: string,
     @Query('state') state: string,
   ) {
-    const storedState = req.cookies?.proconnect_state;
-    const storedNonce = req.cookies?.proconnect_nonce;
-
-    // Clear the cookies
-    res.clearCookie('proconnect_state');
-    res.clearCookie('proconnect_nonce');
-
     try {
       const { source, userInfo } = await this.proConnectService.handleCallback(
         code,
         state,
-        storedState,
-        storedNonce,
       );
 
       const params = new URLSearchParams({

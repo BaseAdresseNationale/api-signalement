@@ -4,6 +4,7 @@ import { Issuer, Client, generators } from 'openid-client';
 import { SourceService } from '../source/source.service';
 import { SourceTypeEnum } from '../source/source.types';
 import { InseeService } from './insee.service';
+import { createHmac } from 'crypto';
 
 export interface ProConnectUserInfo {
   sub: string;
@@ -63,11 +64,47 @@ export class ProConnectService {
     return this.client;
   }
 
+  private get signingSecret(): string {
+    return this.configService.get<string>('PROCONNECT_CLIENT_SECRET');
+  }
+
+  private signState(stateValue: string, nonce: string): string {
+    const payload = JSON.stringify({ s: stateValue, n: nonce });
+    const sig = createHmac('sha256', this.signingSecret)
+      .update(payload)
+      .digest('hex');
+    return Buffer.from(
+      JSON.stringify({ s: stateValue, n: nonce, sig }),
+    ).toString('base64url');
+  }
+
+  private verifyAndDecodeState(state: string): {
+    stateValue: string;
+    nonce: string;
+  } {
+    try {
+      const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
+      const { s, n, sig } = decoded;
+      const payload = JSON.stringify({ s, n });
+      const expectedSig = createHmac('sha256', this.signingSecret)
+        .update(payload)
+        .digest('hex');
+
+      if (sig !== expectedSig) {
+        throw new Error('Invalid signature');
+      }
+
+      return { stateValue: s, nonce: n };
+    } catch {
+      throw new HttpException('Invalid state', HttpStatus.BAD_REQUEST);
+    }
+  }
+
   generateAuthParams(): { state: string; nonce: string } {
-    return {
-      state: generators.state(),
-      nonce: generators.nonce(),
-    };
+    const nonce = generators.nonce();
+    const stateValue = generators.state();
+    const state = this.signState(stateValue, nonce);
+    return { state, nonce };
   }
 
   async getAuthorizationUrl(state: string, nonce: string): Promise<string> {
@@ -84,15 +121,11 @@ export class ProConnectService {
   async handleCallback(
     code: string,
     state: string,
-    storedState: string,
-    storedNonce: string,
   ): Promise<{
     source: { id: string; nom: string; token: string };
     userInfo: ProConnectUserInfo;
   }> {
-    if (state !== storedState) {
-      throw new HttpException('Invalid state', HttpStatus.BAD_REQUEST);
-    }
+    const { nonce } = this.verifyAndDecodeState(state);
 
     const client = await this.getClient();
     const redirectUri =
@@ -103,8 +136,8 @@ export class ProConnectService {
       redirectUri,
       { code, state, iss: client.issuer.metadata.issuer },
       {
-        state: storedState,
-        nonce: storedNonce,
+        state,
+        nonce,
       },
     );
 
