@@ -5,6 +5,7 @@ import { SettingService } from './setting.service';
 import { SettingController } from './setting.controller';
 import { ApiDepotModule } from '../api-depot/api-depot.module';
 import { SourceModule } from '../source/source.module';
+import { CommuneSettingsCacheService } from './commune-settings-cache.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { SourceModule } from '../source/source.module';
     forwardRef(() => SourceModule),
   ],
   controllers: [SettingController],
-  providers: [SettingService],
-  exports: [SettingService],
+  providers: [SettingService, CommuneSettingsCacheService],
+  exports: [SettingService, CommuneSettingsCacheService],
 })
 export class SettingModule {}

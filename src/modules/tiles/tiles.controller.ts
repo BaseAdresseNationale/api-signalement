@@ -48,7 +48,7 @@ export class TilesController {
     enum: TilesLayerEnum,
     isArray: true,
     description:
-      'Layers to include in the tiles (defaults to both alerts and signalements)',
+      'Layers to include in the tiles (defaults to alerts and signalements)',
     example: [TilesLayerEnum.ALERTS, TilesLayerEnum.SIGNALEMENTS],
   })
   @ApiResponse({

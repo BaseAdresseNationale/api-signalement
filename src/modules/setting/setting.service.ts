@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
+import { Revision } from '../api-depot/api-depot.types';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './setting.entity';
 import { ApiDepotService } from '../api-depot/api-depot.service';
@@ -8,6 +9,7 @@ import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { SourceService } from '../source/source.service';
 import { EnabledListDTO } from './dto/enabled-list.dto';
+import { CommuneSettingsCacheService } from './commune-settings-cache.service';
 
 const ObjectIdRE = new RegExp('^[0-9a-fA-F]{24}$');
 
@@ -18,10 +20,75 @@ export class SettingService {
     private readonly settingsRepository: Repository<Setting>,
     private readonly apiDepotService: ApiDepotService,
     private readonly sourceService: SourceService,
+    private readonly communeSettingsCacheService: CommuneSettingsCacheService,
   ) {}
 
   getCommuneSettingsKey(codeCommune: string): string {
     return `${codeCommune}-settings`;
+  }
+
+  private determineCommuneStatus(
+    communeSettings: CommuneSettingsDTO | null,
+    revision: Revision | null,
+    moissonneurWhitelistContent: string[],
+    apiDepotClientWhitelistContent: string[],
+  ): {
+    disabled: boolean;
+    mode?: SignalementSubmissionMode;
+    filteredSources?: string[];
+  } {
+    // Settings override takes priority
+    if (communeSettings) {
+      if (communeSettings.disabled) {
+        return { disabled: true };
+      }
+      return {
+        disabled: false,
+        mode: communeSettings.mode || SignalementSubmissionMode.FULL,
+        ...(communeSettings.filteredSources?.length && {
+          filteredSources: communeSettings.filteredSources,
+        }),
+      };
+    }
+
+    if (!revision) {
+      return { disabled: true };
+    }
+
+    // Published via mes-adresses
+    if (
+      revision.context?.extras?.balId &&
+      ObjectIdRE.test(revision.context.extras.balId)
+    ) {
+      return {
+        disabled: false,
+        mode: SignalementSubmissionMode.FULL,
+      };
+    }
+
+    // Published via moissonneur
+    if (revision.context?.extras?.sourceId) {
+      const isEnabled = moissonneurWhitelistContent.includes(
+        revision.context.extras.sourceId,
+      );
+      return {
+        disabled: !isEnabled,
+        ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+      };
+    }
+
+    // Published via API depot client
+    if (revision.client?.id) {
+      const isEnabled = apiDepotClientWhitelistContent.includes(
+        revision.client.id,
+      );
+      return {
+        disabled: !isEnabled,
+        ...(isEnabled && { mode: SignalementSubmissionMode.LIGHT }),
+      };
+    }
+
+    return { disabled: true };
   }
 
   async getCommuneStatus(
@@ -31,116 +98,66 @@ export class SettingService {
     // Check source id
     await this.sourceService.findOneOrFail(sourceId);
 
-    // First check if the commune is in the disabled list
-    const setting = await this.settingsRepository.findOne({
-      where: { name: this.getCommuneSettingsKey(codeCommune) },
-    });
+    const [
+      setting,
+      currentRevision,
+      moissonneurWhitelist,
+      apiDepotClientWhitelist,
+    ] = await Promise.all([
+      this.settingsRepository.findOne({
+        where: { name: this.getCommuneSettingsKey(codeCommune) },
+      }),
+      this.apiDepotService.getCurrentRevision(codeCommune),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
+      }),
+    ]);
 
-    const communesSettings = setting?.content as CommuneSettingsDTO;
+    const communeSettings = (setting?.content as CommuneSettingsDTO) || null;
+    const moissonneurWhitelistContent =
+      (moissonneurWhitelist?.content as string[]) || [];
+    const apiDepotClientWhitelistContent =
+      (apiDepotClientWhitelist?.content as string[]) || [];
 
-    if (communesSettings) {
-      if (communesSettings.disabled) {
-        return {
-          disabled: true,
-          message:
-            communesSettings.message ||
-            'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.',
-        };
-      } else if (communesSettings.filteredSources?.includes(sourceId)) {
-        return {
-          disabled: true,
-          message:
-            communesSettings.message ||
-            'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
-        };
-      } else {
-        return {
-          disabled: false,
-          mode: communesSettings.mode || SignalementSubmissionMode.FULL,
-        };
-      }
-    }
+    const status = this.determineCommuneStatus(
+      communeSettings,
+      currentRevision,
+      moissonneurWhitelistContent,
+      apiDepotClientWhitelistContent,
+    );
 
-    // Then get current revision to know how commune is published
-    const currentRevision =
-      await this.apiDepotService.getCurrentRevision(codeCommune);
-
-    // If the commune is not published, signalement is disabled
-    if (!currentRevision) {
+    // Handle sourceId-specific filtering
+    if (!status.disabled && status.filteredSources?.includes(sourceId)) {
       return {
         disabled: true,
         message:
-          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie.",
+          communeSettings?.message ||
+          'La commune a demandé la désactivation de cette source de signalements. Nous vous recommandons de contacter directement la mairie.',
       };
     }
 
-    // If commune is published via mes-adresses, signalement is enabled
-    if (
-      currentRevision?.context?.extras?.balId &&
-      ObjectIdRE.test(currentRevision.context.extras.balId)
-    ) {
-      return {
-        disabled: false,
-        mode: SignalementSubmissionMode.FULL,
-      };
-    }
-
-    // If the commune is published via moissonneur, check if the source is in the white list
-    if (currentRevision?.context?.extras?.sourceId) {
-      const moissonneurSourceWhiteList = await this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
-      });
-
-      const moissonneurSourceWhiteListContent =
-        moissonneurSourceWhiteList.content as string[];
-
-      const isSourceEnabled = moissonneurSourceWhiteListContent.includes(
-        currentRevision.context.extras.sourceId,
-      );
-
-      if (isSourceEnabled) {
-        return {
-          disabled: false,
-          mode: SignalementSubmissionMode.LIGHT,
-        };
+    if (status.disabled) {
+      let message: string | undefined;
+      if (communeSettings?.disabled) {
+        message =
+          communeSettings.message ||
+          'La commune a demandé la désactivation du dépôt de signalements. Nous vous recommandons de contacter directement la mairie.';
+      } else if (!currentRevision) {
+        message =
+          "Les signalements ne peuvent pas être proposés sur cette commune car elle n'a pas publié sa Base Adresse Locale. Nous vous recommandons de contacter directement la mairie.";
       } else {
-        return {
-          disabled: true,
-          message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
-        };
+        message =
+          'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.';
       }
-    }
-
-    // If the commune is published via API depot, check if the client is in the white list
-    if (currentRevision?.client?.id) {
-      const apiDepotClientEnabled = await this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
-      });
-
-      const apiDepotClientEnabledContent =
-        apiDepotClientEnabled.content as string[];
-
-      const isClientEnabled = apiDepotClientEnabledContent.includes(
-        currentRevision.client.id,
-      );
-
-      if (isClientEnabled) {
-        return {
-          disabled: false,
-          mode: SignalementSubmissionMode.LIGHT,
-        };
-      } else {
-        return {
-          disabled: true,
-          message:
-            'Cette commune ne gère pas encore la prise en compte des signalements depuis notre site. Nous vous recommandons de contacter directement la mairie.',
-        };
-      }
+      return { disabled: true, message };
     }
 
     return {
-      disabled: true,
+      disabled: false,
+      mode: status.mode,
     };
   }
 
@@ -186,6 +203,8 @@ export class SettingService {
 
     await this.settingsRepository.save(setting);
 
+    this.communeSettingsCacheService.refreshCache();
+
     return setting.content as CommuneSettingsDTO;
   }
 
@@ -229,6 +248,89 @@ export class SettingService {
       await this.settingsRepository.save(setting);
     }
 
+    this.communeSettingsCacheService.refreshCache();
+
     return updatedEnabledList;
+  }
+
+  async computeAllCommuneStatuses(): Promise<
+    Map<
+      string,
+      {
+        disabled: boolean;
+        mode?: SignalementSubmissionMode;
+        filteredSources?: string[];
+      }
+    >
+  > {
+    const [
+      allRevisions,
+      communeSettingsList,
+      moissonneurWhitelist,
+      apiDepotClientWhitelist,
+    ] = await Promise.all([
+      this.apiDepotService.getAllCurrentRevisions(),
+      this.settingsRepository.find({
+        where: { name: Like('%-settings') },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
+      }),
+      this.settingsRepository.findOne({
+        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
+      }),
+    ]);
+
+    const communeSettingsMap = new Map<string, CommuneSettingsDTO>();
+    for (const setting of communeSettingsList) {
+      const codeCommune = setting.name.replace('-settings', '');
+      communeSettingsMap.set(
+        codeCommune,
+        setting.content as CommuneSettingsDTO,
+      );
+    }
+
+    const moissonneurWhitelistContent =
+      (moissonneurWhitelist?.content as string[]) || [];
+    const apiDepotClientWhitelistContent =
+      (apiDepotClientWhitelist?.content as string[]) || [];
+
+    const result = new Map<
+      string,
+      {
+        disabled: boolean;
+        mode?: SignalementSubmissionMode;
+        filteredSources?: string[];
+      }
+    >();
+
+    // Index revisions by codeCommune
+    const revisionsByCommune = new Map<string, Revision>();
+    for (const revision of allRevisions) {
+      revisionsByCommune.set(revision.codeCommune, revision);
+    }
+
+    // Process all communes that have either a revision or custom settings
+    const allCodeCommunes = new Set([
+      ...revisionsByCommune.keys(),
+      ...communeSettingsMap.keys(),
+    ]);
+
+    for (const codeCommune of allCodeCommunes) {
+      const communeSettings = communeSettingsMap.get(codeCommune) || null;
+      const revision = revisionsByCommune.get(codeCommune) || null;
+
+      result.set(
+        codeCommune,
+        this.determineCommuneStatus(
+          communeSettings,
+          revision,
+          moissonneurWhitelistContent,
+          apiDepotClientWhitelistContent,
+        ),
+      );
+    }
+
+    return result;
   }
 }
