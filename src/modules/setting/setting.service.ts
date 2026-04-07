@@ -320,15 +320,6 @@ export class SettingService {
       const communeSettings = communeSettingsMap.get(codeCommune) || null;
       const revision = revisionsByCommune.get(codeCommune) || null;
 
-      // Dirty hack to test on staging while waiting for the balId to be added in the revision context on production. Should be removed once the balId is available in production revisions.
-      if (revision?.clientId === '651c1496142003dd4ba592ff') {
-        revision.context = {
-          extras: {
-            balId: '614b3385e1d1f2602d7ad284',
-          },
-        };
-      }
-
       result.set(
         codeCommune,
         this.determineCommuneStatus(
