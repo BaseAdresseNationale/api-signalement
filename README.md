@@ -96,6 +96,10 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `PROCONNECT_ENDPOINT`         | Proconnect Endpoint                                                                                         |
 | `INSEE_API_URL`               | Url de l'API INSEE (Sirene)                                                                                 |
 | `INSEE_API_KEY_INTEGRATION`   | Clef de l'API INSEE (Sirene)                                                                                |
+| `DATAGOUV_API_URL`            | URL de l'API DataGouv                                                                                       |
+| `DATAGOUV_API_KEY`            | Clef de l'API DataGouv                                                                                      |
+| `DATAGOUV_DATASET_ID`         | Id du dataset sur DataGouv                                                                                  |
+| `DATAGOUV_RESOURCE_ID`        | Id de la ressource sur DataGouv                                                                             |
 
 ## Licence
 
