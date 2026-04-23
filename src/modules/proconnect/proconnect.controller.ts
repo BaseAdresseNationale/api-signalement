@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
@@ -60,9 +67,24 @@ export class ProConnectController {
       res.redirect(`${frontendUrl}/#/proconnect-callback?${params.toString()}`);
     } catch (error) {
       console.error('ProConnect login callback error:', error);
+
       const frontendUrl = this.configService.get<string>(
         'MES_SIGNALEMENTS_URL',
       );
+
+      if (typeof error === 'object' && error instanceof HttpException) {
+        const status = error.getStatus();
+        const response = error.getResponse();
+
+        if (status === HttpStatus.FORBIDDEN) {
+          const { error, errorLink } = response as any;
+          res.redirect(
+            `${frontendUrl}/#/proconnect-callback?error=${encodeURIComponent(error)}&errorLink=${encodeURIComponent(errorLink)}`,
+          );
+          return;
+        }
+      }
+
       res.redirect(
         `${frontendUrl}/#/proconnect-callback?error=${encodeURIComponent('Authentication failed')}`,
       );
