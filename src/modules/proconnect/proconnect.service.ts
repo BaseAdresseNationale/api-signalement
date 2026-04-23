@@ -145,7 +145,7 @@ export class ProConnectService {
 
     if (!userInfo.siret) {
       throw new HttpException(
-        'No SIRET found in user info',
+        'Aucun SIRET trouvé dans les informations utilisateur',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -156,14 +156,26 @@ export class ProConnectService {
 
     if (!organizationInfo) {
       throw new HttpException(
-        `No organization found for SIRET ${userInfo.siret}`,
+        `Aucune organisation trouvée pour le SIRET ${userInfo.siret}`,
         HttpStatus.BAD_REQUEST,
       );
     }
 
     if (!organizationInfo.isPublic) {
       throw new HttpException(
-        `Organization with SIRET ${userInfo.siret} is not a public organism`,
+        {
+          error: 'ORGANIZATION_NOT_PUBLIC',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (organizationInfo.isCommune) {
+      throw new HttpException(
+        {
+          error: `COMMUNE_NOT_ALLOWED`,
+          errorLink: `${this.configService.get<string>('MES_ADRESSES_URL')}/new?commune=${organizationInfo.codeCommune}`,
+        },
         HttpStatus.FORBIDDEN,
       );
     }

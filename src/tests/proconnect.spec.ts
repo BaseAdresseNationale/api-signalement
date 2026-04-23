@@ -27,6 +27,7 @@ import { InseeService } from '../modules/proconnect/insee.service';
 import { ProConnectModule } from '../modules/proconnect/proconnect.module';
 
 const MES_SIGNALEMENTS_URL = 'http://localhost:7777';
+const MES_ADRESSES_URL = 'http://localhost:8888';
 
 jest.setTimeout(60000);
 
@@ -60,6 +61,7 @@ describe('ProConnect module', () => {
           load: [
             () => ({
               MES_SIGNALEMENTS_URL,
+              MES_ADRESSES_URL,
               API_SIGNALEMENT_URL: 'http://localhost:5005',
               PROCONNECT_CLIENT_SECRET: 'test-secret',
             }),
@@ -252,9 +254,12 @@ describe('ProConnect module', () => {
       jest
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
-      jest
-        .spyOn(inseeService, 'getOrganizationInfo')
-        .mockResolvedValue({ nom: 'Mairie Existante', isPublic: true });
+      jest.spyOn(inseeService, 'getOrganizationInfo').mockResolvedValue({
+        nom: 'Mairie Existante',
+        isPublic: true,
+        isCommune: false,
+        codeCommune: null,
+      });
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -285,9 +290,12 @@ describe('ProConnect module', () => {
       jest
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
-      jest
-        .spyOn(inseeService, 'getOrganizationInfo')
-        .mockResolvedValue({ nom: 'Commune Nouvelle', isPublic: true });
+      jest.spyOn(inseeService, 'getOrganizationInfo').mockResolvedValue({
+        nom: 'Commune Nouvelle',
+        isPublic: true,
+        isCommune: false,
+        codeCommune: null,
+      });
 
       const result = await proConnectService.handleCallback(
         'code',
@@ -334,7 +342,7 @@ describe('ProConnect module', () => {
 
       await expect(
         proConnectService.handleCallback('code', signedState),
-      ).rejects.toThrow('No SIRET found in user info');
+      ).rejects.toThrow('Aucun SIRET trouvé dans les informations utilisateur');
     });
 
     it('should throw when organization is not a public organism', async () => {
@@ -355,21 +363,69 @@ describe('ProConnect module', () => {
       jest
         .spyOn(proConnectService, 'getClient')
         .mockResolvedValue(mockClient as any);
-      jest
-        .spyOn(inseeService, 'getOrganizationInfo')
-        .mockResolvedValue({ nom: 'Entreprise Privée SAS', isPublic: false });
+      jest.spyOn(inseeService, 'getOrganizationInfo').mockResolvedValue({
+        nom: 'Entreprise Privée SAS',
+        isPublic: false,
+        isCommune: false,
+        codeCommune: null,
+      });
 
       await expect(
         proConnectService.handleCallback('code', signedState),
-      ).rejects.toThrow(
-        'Organization with SIRET 55566677788899 is not a public organism',
-      );
+      ).rejects.toMatchObject({
+        status: HttpStatus.FORBIDDEN,
+        response: { error: 'ORGANIZATION_NOT_PUBLIC' },
+      });
 
       // Verify no source was created
       const source = await sourceRepository.findOne({
         where: { siret: '55566677788899' },
       });
       expect(source).toBeNull();
+    });
+
+    describe('mairie (commune)', () => {
+      const mairieUserInfo: ProConnectUserInfo = {
+        sub: 'user-mairie',
+        email: 'agent@mairie-test.fr',
+        given_name: 'Marie',
+        usual_name: 'Mairie',
+        siret: '21330063500017',
+        organizational_unit: 'Mairie',
+      };
+
+      const buildMockClient = () => ({
+        issuer: { metadata: { issuer: 'https://test-issuer' } },
+        callback: jest.fn().mockResolvedValue({ access_token: 'at' }),
+        userinfo: jest.fn().mockResolvedValue(mairieUserInfo),
+      });
+
+      it('should throw COMMUNE_NOT_ALLOWED with a Mes Adresses link for the commune', async () => {
+        jest
+          .spyOn(proConnectService, 'getClient')
+          .mockResolvedValue(buildMockClient() as any);
+        jest.spyOn(inseeService, 'getOrganizationInfo').mockResolvedValue({
+          nom: 'Mairie de Test',
+          isPublic: true,
+          isCommune: true,
+          codeCommune: '33063',
+        });
+
+        await expect(
+          proConnectService.handleCallback('code', signedState),
+        ).rejects.toMatchObject({
+          status: HttpStatus.FORBIDDEN,
+          response: {
+            error: 'COMMUNE_NOT_ALLOWED',
+            errorLink: `${MES_ADRESSES_URL}/new?commune=33063`,
+          },
+        });
+
+        const source = await sourceRepository.findOne({
+          where: { siret: '21330063500017' },
+        });
+        expect(source).toBeNull();
+      });
     });
   });
 });

@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 export interface OrganizationInfo {
   nom: string;
   isPublic: boolean;
+  isCommune: boolean;
+  codeCommune: string | null;
 }
 
 @Injectable()
@@ -57,8 +59,12 @@ export class InseeService {
       const categorieJuridique =
         uniteLegale?.categorieJuridiqueUniteLegale || '';
       const isPublic = categorieJuridique.startsWith('7');
+      // Catégorie juridique 7210 = Commune et commune nouvelle (mairie)
+      const isCommune = categorieJuridique === '7210';
+      const codeCommune =
+        etablissement?.adresseEtablissement?.codeCommuneEtablissement || null;
 
-      return { nom, isPublic };
+      return { nom, isPublic, isCommune, codeCommune };
     } catch (error) {
       this.logger.error(
         `Error fetching organization info for SIRET ${siret}: ${error.message}`,
