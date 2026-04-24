@@ -213,10 +213,12 @@ export class SignalementService extends BaseReportService<Signalement> {
       entry.total += count;
     }
 
-    return Array.from(communeMap.entries()).map(([codeCommune, counts]) => ({
-      codeCommune,
-      nomCommune: getCommune(codeCommune)?.nom || codeCommune,
-      ...counts,
-    }));
+    return Array.from(communeMap.entries())
+      .map(([codeCommune, counts]) => ({
+        codeCommune,
+        nomCommune: getCommune(codeCommune)?.nom || codeCommune,
+        ...counts,
+      }))
+      .sort((a, b) => b.total - a.total);
   }
 }

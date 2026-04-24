@@ -37,6 +37,7 @@ const testSource = new Source({
       provide: ApiDepotService,
       useValue: {
         getCurrentRevision: currentRevisionMock,
+        getAllCurrentRevisions: jest.fn().mockResolvedValue([]),
       },
     },
   ],

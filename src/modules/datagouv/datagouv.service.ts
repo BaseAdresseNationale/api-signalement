@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import FormData from 'form-data';
+import FormData = require('form-data');
 
 @Injectable()
 export class DataGouvService {
