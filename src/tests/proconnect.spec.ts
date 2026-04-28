@@ -31,6 +31,8 @@ const MES_ADRESSES_URL = 'http://localhost:8888';
 
 jest.setTimeout(60000);
 
+jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
 describe('ProConnect module', () => {
   let app: INestApplication;
   let postgresContainer: StartedPostgreSqlContainer;

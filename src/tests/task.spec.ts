@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SignalementService } from '../modules/signalement/signalement.service';
 import { MesAdressesAPIService } from '../modules/mes-adresses-api/mes-adresses-api.service';
 import { MailerService } from '@nestjs-modules/mailer';
+import { DataGouvService } from '../modules/datagouv/datagouv.service';
 import { createRecording } from '../utils/test.utils';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from '../modules/signalement/signalement.entity';
@@ -22,6 +23,7 @@ import {
 import { Client as PGClient } from 'pg';
 import { entities } from '../app.entities';
 import { SignalementModule } from '../modules/signalement/signalement.module';
+import { ReportStatusEnum } from '../common/report-status.enum';
 
 const getPendingSignalementsReportMock = jest.fn(() =>
   Promise.resolve([
@@ -49,6 +51,8 @@ const searchBaseLocaleMock = jest.fn(() =>
 
 const sendMailMock = jest.fn();
 
+const uploadCSVResourceMock = jest.fn(() => Promise.resolve());
+
 @Global()
 @Module({
   providers: [
@@ -64,8 +68,14 @@ const sendMailMock = jest.fn();
         sendMail: sendMailMock,
       },
     },
+    {
+      provide: DataGouvService,
+      useValue: {
+        uploadCSVResource: uploadCSVResourceMock,
+      },
+    },
   ],
-  exports: [MesAdressesAPIService, MailerService],
+  exports: [MesAdressesAPIService, MailerService, DataGouvService],
 })
 class TestModule {}
 
@@ -263,6 +273,131 @@ describe('Task module', () => {
       const signalements = await signalementRepository.find();
 
       expect(signalements).toHaveLength(0);
+    });
+  });
+
+  describe('Task weeklyDataGouvCSVExport', () => {
+    beforeEach(() => {
+      uploadCSVResourceMock.mockClear();
+    });
+
+    it('should skip if DATAGOUV_DATASET_ID is not configured', async () => {
+      jest.spyOn(configService, 'get').mockReturnValue(undefined);
+
+      await app.get(TaskService).weeklyDataGouvCSVExport();
+
+      expect(uploadCSVResourceMock).not.toHaveBeenCalled();
+    });
+
+    it('should generate CSV and upload to data.gouv.fr', async () => {
+      jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+        const config = {
+          DATAGOUV_DATASET_ID: 'test-dataset-id',
+          DATAGOUV_RESOURCE_ID: 'test-resource-id',
+        };
+        return config[key];
+      });
+
+      const source = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Mes signalements',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const createSignalement = (
+        codeCommune: string,
+        status: ReportStatusEnum,
+      ) => {
+        const signalement = new Signalement({
+          codeCommune,
+          author: { email: 'test@test.com' },
+          type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+          existingLocation: {
+            type: ExistingLocationTypeEnum.NUMERO,
+            numero: 2,
+            suffixe: 'bis',
+            position: {
+              type: PositionTypeEnum.BATIMENT,
+              point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+            },
+            toponyme: {
+              type: ExistingLocationTypeEnum.VOIE,
+              nom: 'Rue de la Paix',
+            },
+          },
+          changesRequested: {
+            numero: 3,
+            suffixe: 'ter',
+            positions: [
+              {
+                type: PositionTypeEnum.BATIMENT,
+                point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+              },
+            ],
+            parcelles: ['37003000BA0744'],
+          } as NumeroChangesRequestedDTO,
+        });
+        signalement.source = source;
+        signalement.status = status;
+        return signalement;
+      };
+
+      // Create signalements with different statuses for two communes
+      await createRecording(
+        signalementRepository,
+        createSignalement('37003', ReportStatusEnum.PENDING),
+      );
+      await createRecording(
+        signalementRepository,
+        createSignalement('37003', ReportStatusEnum.PENDING),
+      );
+      await createRecording(
+        signalementRepository,
+        createSignalement('37003', ReportStatusEnum.PROCESSED),
+      );
+      await createRecording(
+        signalementRepository,
+        createSignalement('37185', ReportStatusEnum.IGNORED),
+      );
+      await createRecording(
+        signalementRepository,
+        createSignalement('37185', ReportStatusEnum.EXPIRED),
+      );
+
+      await app.get(TaskService).weeklyDataGouvCSVExport();
+
+      expect(uploadCSVResourceMock).toHaveBeenCalledTimes(1);
+      expect(uploadCSVResourceMock).toHaveBeenCalledWith(
+        'test-dataset-id',
+        'test-resource-id',
+        expect.any(String),
+        'signalements-par-commune.csv',
+      );
+
+      const csvContent = (
+        uploadCSVResourceMock.mock.calls as any
+      )[0][2] as string;
+      const lines = csvContent.split('\n');
+
+      expect(lines[0]).toBe(
+        'code_insee,nom_commune,nb_signalements_en_attente,nb_signalements_traites,nb_signalements_ignores,nb_signalements_expires,nb_signalements_total',
+      );
+
+      // Should have header + 2 communes
+      expect(lines).toHaveLength(3);
+
+      const commune37003 = lines.find((l) => l.startsWith('37003'));
+      const commune37185 = lines.find((l) => l.startsWith('37185'));
+
+      expect(commune37003).toBeDefined();
+      expect(commune37185).toBeDefined();
+
+      // 37003: 2 pending, 1 processed, 0 ignored, 0 expired, 3 total
+      expect(commune37003).toContain(',2,1,0,0,3');
+      // 37185: 0 pending, 0 processed, 1 ignored, 1 expired, 2 total
+      expect(commune37185).toContain(',0,0,1,1,2');
     });
   });
 });

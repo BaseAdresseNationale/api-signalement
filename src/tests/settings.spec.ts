@@ -20,6 +20,9 @@ import {
   EnabledListKeys,
   SignalementSubmissionMode,
 } from '../modules/setting/setting.type';
+import { Logger } from '@nestjs/common';
+
+Logger.overrideLogger(false);
 
 const currentRevisionMock = jest.fn();
 
@@ -34,6 +37,7 @@ const testSource = new Source({
       provide: ApiDepotService,
       useValue: {
         getCurrentRevision: currentRevisionMock,
+        getAllCurrentRevisions: jest.fn().mockResolvedValue([]),
       },
     },
   ],
