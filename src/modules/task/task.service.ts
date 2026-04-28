@@ -101,8 +101,8 @@ export class TaskService {
     );
   }
 
-  // Cron job that runs every Monday at 8:00 AM
-  @Cron('0 8 * * 1')
+  // Cron job that runs every Tuesday at 17:00 PM
+  @Cron('0 17 * * 2')
   async weeklyDataGouvCSVExport() {
     const datasetId = this.configService.get('DATAGOUV_DATASET_ID');
     const resourceId = this.configService.get('DATAGOUV_RESOURCE_ID');

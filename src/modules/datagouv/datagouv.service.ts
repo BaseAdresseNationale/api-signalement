@@ -26,7 +26,7 @@ export class DataGouvService {
       contentType: 'text/csv',
     });
 
-    await axios.put(
+    await axios.post(
       `${apiUrl}/datasets/${datasetId}/resources/${resourceId}/upload/`,
       form,
       {
