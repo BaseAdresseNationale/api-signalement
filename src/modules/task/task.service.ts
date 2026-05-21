@@ -6,6 +6,7 @@ import { DataGouvService } from '../datagouv/datagouv.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { getCommune } from '../../utils/cog.utils';
+import { AlertService } from '../alert/alert.service';
 
 @Injectable()
 export class TaskService {
@@ -13,6 +14,7 @@ export class TaskService {
 
   constructor(
     private readonly signalementService: SignalementService,
+    private readonly alertService: AlertService,
     private readonly mesAdressesAPIService: MesAdressesAPIService,
     private readonly dataGouvService: DataGouvService,
     private readonly mailerService: MailerService,
@@ -116,14 +118,85 @@ export class TaskService {
 
     this.logger.log('Start task : weeklyDataGouvCSVExport');
 
-    const countsByCommune =
-      await this.signalementService.getSignalementCountsByCommune();
+    const [signalementCountsByCommune, alertCountsByCommune] =
+      await Promise.all([
+        this.signalementService.getSignalementCountsByCommune(),
+        this.alertService.getAlertCountsByCommune(),
+      ]);
+
+    const emptyCounts = {
+      pending: 0,
+      processed: 0,
+      ignored: 0,
+      expired: 0,
+      total: 0,
+    };
+
+    const merged = new Map<
+      string,
+      {
+        nomCommune: string;
+        signalements: typeof emptyCounts;
+        alerts: typeof emptyCounts;
+      }
+    >();
+
+    for (const row of signalementCountsByCommune) {
+      merged.set(row.codeCommune, {
+        nomCommune: row.nomCommune,
+        signalements: {
+          pending: row.pending,
+          processed: row.processed,
+          ignored: row.ignored,
+          expired: row.expired,
+          total: row.total,
+        },
+        alerts: { ...emptyCounts },
+      });
+    }
+
+    for (const row of alertCountsByCommune) {
+      const existing = merged.get(row.codeCommune);
+      if (existing) {
+        existing.alerts = {
+          pending: row.pending,
+          processed: row.processed,
+          ignored: row.ignored,
+          expired: row.expired,
+          total: row.total,
+        };
+      } else {
+        merged.set(row.codeCommune, {
+          nomCommune: row.nomCommune,
+          signalements: { ...emptyCounts },
+          alerts: {
+            pending: row.pending,
+            processed: row.processed,
+            ignored: row.ignored,
+            expired: row.expired,
+            total: row.total,
+          },
+        });
+      }
+    }
+
+    const mergedRows = Array.from(merged.entries())
+      .map(([codeCommune, data]) => ({
+        codeCommune,
+        ...data,
+      }))
+      .sort(
+        (a, b) =>
+          b.signalements.total +
+          b.alerts.total -
+          (a.signalements.total + a.alerts.total),
+      );
 
     const header =
-      'code_insee,nom_commune,nb_signalements_en_attente,nb_signalements_traites,nb_signalements_ignores,nb_signalements_expires,nb_signalements_total';
-    const rows = countsByCommune.map(
+      'code_insee,nom_commune,nb_signalements_en_attente,nb_signalements_traites,nb_signalements_ignores,nb_signalements_expires,nb_signalements_total,nb_alertes_en_attente,nb_alertes_traitees,nb_alertes_ignorees,nb_alertes_expirees,nb_alertes_total';
+    const rows = mergedRows.map(
       (row) =>
-        `${row.codeCommune},${row.nomCommune.includes(',') ? `"${row.nomCommune}"` : row.nomCommune},${row.pending},${row.processed},${row.ignored},${row.expired},${row.total}`,
+        `${row.codeCommune},${row.nomCommune.includes(',') ? `"${row.nomCommune}"` : row.nomCommune},${row.signalements.pending},${row.signalements.processed},${row.signalements.ignored},${row.signalements.expired},${row.signalements.total},${row.alerts.pending},${row.alerts.processed},${row.alerts.ignored},${row.alerts.expired},${row.alerts.total}`,
     );
     const csvContent = [header, ...rows].join('\n');
 
