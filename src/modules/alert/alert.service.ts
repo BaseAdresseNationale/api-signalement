@@ -14,6 +14,8 @@ import {
 import { CreateAlertDTO, UpdateAlertDTO } from './alert.dto';
 import { AlertStatusEnum } from './alert.types';
 import { StatsDTO } from '../stats/stats.dto';
+import { ReportStatusEnum } from '../../common/report-status.enum';
+import { getCommune } from '../../utils/cog.utils';
 
 @Injectable()
 export class AlertService extends BaseReportService<Alert> {
@@ -137,5 +139,80 @@ export class AlertService extends BaseReportService<Alert> {
         {},
       ),
     };
+  }
+
+  async getAlertCountsByCommune(): Promise<
+    {
+      codeCommune: string;
+      nomCommune: string;
+      pending: number;
+      processed: number;
+      ignored: number;
+      expired: number;
+      total: number;
+    }[]
+  > {
+    const qb = this.repository.createQueryBuilder('alert');
+
+    const rawResults: {
+      codeCommune: string;
+      status: string;
+      count: string;
+    }[] = await qb
+      .select('alert.code_commune', 'codeCommune')
+      .addSelect('alert.status', 'status')
+      .addSelect('COUNT(alert.id)', 'count')
+      .groupBy('alert.code_commune')
+      .addGroupBy('alert.status')
+      .getRawMany();
+
+    const communeMap = new Map<
+      string,
+      {
+        pending: number;
+        processed: number;
+        ignored: number;
+        expired: number;
+        total: number;
+      }
+    >();
+
+    for (const row of rawResults) {
+      if (!communeMap.has(row.codeCommune)) {
+        communeMap.set(row.codeCommune, {
+          pending: 0,
+          processed: 0,
+          ignored: 0,
+          expired: 0,
+          total: 0,
+        });
+      }
+      const entry = communeMap.get(row.codeCommune);
+      const count = Number(row.count);
+
+      switch (row.status) {
+        case ReportStatusEnum.PENDING:
+          entry.pending = count;
+          break;
+        case ReportStatusEnum.PROCESSED:
+          entry.processed = count;
+          break;
+        case ReportStatusEnum.IGNORED:
+          entry.ignored = count;
+          break;
+        case ReportStatusEnum.EXPIRED:
+          entry.expired = count;
+          break;
+      }
+      entry.total += count;
+    }
+
+    return Array.from(communeMap.entries())
+      .map(([codeCommune, counts]) => ({
+        codeCommune,
+        nomCommune: getCommune(codeCommune)?.nom || codeCommune,
+        ...counts,
+      }))
+      .sort((a, b) => b.total - a.total);
   }
 }

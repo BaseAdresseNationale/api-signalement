@@ -4,10 +4,12 @@ import { TaskService } from './task.service';
 import { MesAdressesAPIModule } from '../mes-adresses-api/mes-adresses-api.module';
 import { DataGouvModule } from '../datagouv/datagouv.module';
 import { ConfigModule } from '@nestjs/config';
+import { AlertModule } from '../alert/alert.module';
 
 @Module({
   imports: [
     forwardRef(() => SignalementModule),
+    forwardRef(() => AlertModule),
     MesAdressesAPIModule,
     DataGouvModule,
     ConfigModule,

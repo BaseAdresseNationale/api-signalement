@@ -24,6 +24,9 @@ import { Client as PGClient } from 'pg';
 import { entities } from '../app.entities';
 import { SignalementModule } from '../modules/signalement/signalement.module';
 import { ReportStatusEnum } from '../common/report-status.enum';
+import { AlertModule } from '../modules/alert/alert.module';
+import { Alert } from '../modules/alert/alert.entity';
+import { AlertTypeEnum } from '../modules/alert/alert.types';
 
 const getPendingSignalementsReportMock = jest.fn(() =>
   Promise.resolve([
@@ -86,6 +89,7 @@ describe('Task module', () => {
   let configService: ConfigService;
   let signalementService: SignalementService;
   let signalementRepository: Repository<Signalement>;
+  let alertRepository: Repository<Alert>;
   let sourceRepository: Repository<Source>;
 
   beforeAll(async () => {
@@ -121,6 +125,7 @@ describe('Task module', () => {
           entities,
         }),
         SignalementModule,
+        AlertModule,
       ],
       providers: [TaskService],
     }).compile();
@@ -131,6 +136,7 @@ describe('Task module', () => {
     configService = app.get<ConfigService>(ConfigService);
     signalementService = app.get<SignalementService>(SignalementService);
     signalementRepository = app.get(getRepositoryToken(Signalement));
+    alertRepository = app.get(getRepositoryToken(Alert));
     sourceRepository = app.get(getRepositoryToken(Source));
   });
 
@@ -141,6 +147,7 @@ describe('Task module', () => {
   });
 
   afterEach(async () => {
+    await alertRepository.delete({});
     await signalementRepository.delete({});
     await sourceRepository.delete({});
   });
@@ -366,6 +373,47 @@ describe('Task module', () => {
         createSignalement('37185', ReportStatusEnum.EXPIRED),
       );
 
+      const createAlert = (codeCommune: string, status: ReportStatusEnum) => {
+        const alert = new Alert({
+          codeCommune,
+          type: AlertTypeEnum.MISSING_ADDRESS,
+          point: {
+            type: 'Point',
+            coordinates: [0.982904, 47.410998],
+          } as any,
+          comment: 'Adresse manquante',
+          author: { email: 'test@test.com' },
+        });
+        alert.source = source;
+        alert.status = status;
+        return alert;
+      };
+
+      // Create alerts:
+      // - 37003: 1 pending (commune already in signalements)
+      // - 37185: 2 processed, 1 ignored
+      // - 75056: 1 pending (commune only present via alerts)
+      await createRecording(
+        alertRepository,
+        createAlert('37003', ReportStatusEnum.PENDING),
+      );
+      await createRecording(
+        alertRepository,
+        createAlert('37185', ReportStatusEnum.PROCESSED),
+      );
+      await createRecording(
+        alertRepository,
+        createAlert('37185', ReportStatusEnum.PROCESSED),
+      );
+      await createRecording(
+        alertRepository,
+        createAlert('37185', ReportStatusEnum.IGNORED),
+      );
+      await createRecording(
+        alertRepository,
+        createAlert('75056', ReportStatusEnum.PENDING),
+      );
+
       await app.get(TaskService).weeklyDataGouvCSVExport();
 
       expect(uploadCSVResourceMock).toHaveBeenCalledTimes(1);
@@ -382,22 +430,26 @@ describe('Task module', () => {
       const lines = csvContent.split('\n');
 
       expect(lines[0]).toBe(
-        'code_insee,nom_commune,nb_signalements_en_attente,nb_signalements_traites,nb_signalements_ignores,nb_signalements_expires,nb_signalements_total',
+        'code_insee,nom_commune,nb_signalements_en_attente,nb_signalements_traites,nb_signalements_ignores,nb_signalements_expires,nb_signalements_total,nb_alertes_en_attente,nb_alertes_traitees,nb_alertes_ignorees,nb_alertes_expirees,nb_alertes_total',
       );
 
-      // Should have header + 2 communes
-      expect(lines).toHaveLength(3);
+      // Should have header + 3 communes (37003, 37185, 75056)
+      expect(lines).toHaveLength(4);
 
       const commune37003 = lines.find((l) => l.startsWith('37003'));
       const commune37185 = lines.find((l) => l.startsWith('37185'));
+      const commune75056 = lines.find((l) => l.startsWith('75056'));
 
       expect(commune37003).toBeDefined();
       expect(commune37185).toBeDefined();
+      expect(commune75056).toBeDefined();
 
-      // 37003: 2 pending, 1 processed, 0 ignored, 0 expired, 3 total
-      expect(commune37003).toContain(',2,1,0,0,3');
-      // 37185: 0 pending, 0 processed, 1 ignored, 1 expired, 2 total
-      expect(commune37185).toContain(',0,0,1,1,2');
+      // 37003: signalements 2 pending, 1 processed, 0, 0, 3 total ; alerts 1 pending, 0, 0, 0, 1 total
+      expect(commune37003).toContain(',2,1,0,0,3,1,0,0,0,1');
+      // 37185: signalements 0, 0, 1 ignored, 1 expired, 2 total ; alerts 0, 2 processed, 1 ignored, 0, 3 total
+      expect(commune37185).toContain(',0,0,1,1,2,0,2,1,0,3');
+      // 75056: no signalements ; alerts 1 pending, 0, 0, 0, 1 total
+      expect(commune75056).toContain(',0,0,0,0,0,1,0,0,0,1');
     });
   });
 });
