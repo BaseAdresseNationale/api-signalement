@@ -1148,6 +1148,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1210,6 +1211,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE without existing_location', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1269,6 +1271,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1343,6 +1346,7 @@ describe('Signalement module', () => {
     });
 
     it("should cast the numero to type number with pipe if it's a string", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1421,6 +1425,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
@@ -1493,6 +1498,7 @@ describe('Signalement module', () => {
         }),
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
