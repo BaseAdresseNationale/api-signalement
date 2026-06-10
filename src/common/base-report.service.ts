@@ -196,22 +196,26 @@ export abstract class BaseReportService<T extends Report> {
       withAuthor: true,
     })) as any;
 
+    const source = await this.sourceService.findOneOrFail(entity.source.id);
+    const defaultAuthor = source.defaultAuthor;
+    const authorEmail = author?.email || defaultAuthor?.email;
+
     if (
-      author?.email &&
+      authorEmail &&
       [ReportStatusEnum.PROCESSED, ReportStatusEnum.IGNORED].includes(
         updatedEntity.status,
       )
     ) {
       try {
         await this.mailerService.sendMail({
-          to: author.email,
+          to: authorEmail,
           subject: this.getEmailSubject(updatedEntity.status),
           template: this.getEmailTemplate(updatedEntity.status),
           context: this.buildEmailContext(updatedEntity),
         });
       } catch (error) {
         console.error(
-          `An error occured while sending email to ${author.email}: ${error.message}`,
+          `An error occured while sending email to ${authorEmail}: ${error.message}`,
         );
       }
     }

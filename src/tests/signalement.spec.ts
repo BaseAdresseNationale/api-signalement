@@ -53,6 +53,8 @@ const getSerializedSignalement = (
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { codeCommune, author, createdAt, updatedAt, ...rest } = signalement;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { defaultAuthor, ...serializedSource } = source;
   return {
     ...rest,
     codeCommune,
@@ -62,7 +64,7 @@ const getSerializedSignalement = (
     updatedAt:
       updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
     source: {
-      ...source,
+      ...serializedSource,
       createdAt: new Date(source.createdAt).toISOString(),
       updatedAt: new Date(source.updatedAt).toISOString(),
     },
@@ -192,7 +194,7 @@ describe('Signalement module', () => {
   describe('GET /signalements', () => {
     it('should get paginated signalements', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'SIG Ville',
@@ -326,7 +328,7 @@ describe('Signalement module', () => {
 
     it('should get signalements by commune', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'SIG Ville',
@@ -599,7 +601,7 @@ describe('Signalement module', () => {
 
     it('should get signalements by status', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'SIG Ville',
@@ -732,7 +734,7 @@ describe('Signalement module', () => {
 
     it('should get signalements by type', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'SIG Ville',
@@ -862,7 +864,7 @@ describe('Signalement module', () => {
   describe('GET /signalements/:idSignalement', () => {
     it('should get a signalement by id (with author infos)', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -935,7 +937,7 @@ describe('Signalement module', () => {
 
     it('should get a signalement by id (without author infos)', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1054,7 +1056,7 @@ describe('Signalement module', () => {
 
     it('should throw 401 if no token and invalid captcha', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...publicSource } = await createRecording(
+      const { token, defaultAuthor, ...publicSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1109,7 +1111,7 @@ describe('Signalement module', () => {
 
     it('should throw 400 if the payload doesnt pass BAL validator', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1146,7 +1148,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE', async () => {
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1208,7 +1210,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_CREATE without existing_location', async () => {
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1267,7 +1269,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_UPDATE', async () => {
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1341,7 +1343,7 @@ describe('Signalement module', () => {
     });
 
     it("should cast the numero to type number with pipe if it's a string", async () => {
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1419,7 +1421,7 @@ describe('Signalement module', () => {
     });
 
     it('should create a signalement of type LOCATION_TO_DELETE', async () => {
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1491,7 +1493,7 @@ describe('Signalement module', () => {
         }),
       );
 
-      const { token, ...privateSource } = await createRecording(
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -1534,7 +1536,7 @@ describe('Signalement module', () => {
   describe('PUT /signalements/:idSignalement', () => {
     it('should throw 401 if invalid authorization', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...source } = await createRecording(
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',

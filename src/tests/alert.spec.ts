@@ -38,6 +38,8 @@ const getSerializedAlert = (
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { codeCommune, author, createdAt, updatedAt, ...rest } = alert;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { defaultAuthor, ...serializedSource } = source;
   return {
     ...rest,
     codeCommune,
@@ -47,7 +49,7 @@ const getSerializedAlert = (
     updatedAt:
       updatedAt instanceof Date ? new Date(updatedAt).toISOString() : updatedAt,
     source: {
-      ...source,
+      ...serializedSource,
       createdAt: new Date(source.createdAt).toISOString(),
       updatedAt: new Date(source.updatedAt).toISOString(),
     },
@@ -515,7 +517,8 @@ describe('Alert module', () => {
     });
 
     it('should create an alert of type MISSING_ADDRESS', async () => {
-      const { token, ...privateSource } = await createRecording(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -564,7 +567,8 @@ describe('Alert module', () => {
     });
 
     it('should create an alert with author', async () => {
-      const { token, ...privateSource } = await createRecording(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',
@@ -623,7 +627,8 @@ describe('Alert module', () => {
     });
 
     it('should create an alert with context', async () => {
-      const { token, ...privateSource } = await createRecording(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...privateSource } = await createRecording(
         sourceRepository,
         new Source({
           nom: 'Pifomètre',

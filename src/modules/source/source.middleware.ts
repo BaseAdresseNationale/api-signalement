@@ -70,6 +70,22 @@ export class SourceMiddleware implements NestMiddleware {
     next: NextFunction,
   ) {
     const token = req.headers.authorization?.split(' ')[1];
+
+    if (req.params.idSource) {
+      if (!token) {
+        throw new HttpException(
+          'Authorization required',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const source = await this.validatePrivateSource(req);
+      if (source.id !== req.params.idSource) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+      req.source = source;
+      return next();
+    }
+
     let source: Source;
     if (token) {
       source = await this.validatePrivateSource(req);

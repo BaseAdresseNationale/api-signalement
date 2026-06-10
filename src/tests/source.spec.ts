@@ -106,6 +106,7 @@ describe('Source module', () => {
         token: expect.any(String),
         type: SourceTypeEnum.PRIVATE,
         siret: '12345678901234',
+        defaultAuthor: null,
         deletedAt: null,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -129,6 +130,7 @@ describe('Source module', () => {
         nom: 'Pifomètre',
         token: null,
         siret: null,
+        defaultAuthor: null,
         type: SourceTypeEnum.PUBLIC,
         deletedAt: null,
         createdAt: expect.any(String),
@@ -168,6 +170,80 @@ describe('Source module', () => {
         .expect(200);
 
       expect(response.body.siret).toBeNull();
+    });
+
+    it('should create a private source with a defaultAuthor', async () => {
+      const createSourceDTO: CreateSourceDTO = {
+        type: SourceTypeEnum.PRIVATE,
+        nom: 'SIG Ville',
+        siret: '12345678901234',
+        defaultAuthor: {
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          email: 'jean.dupont@example.com',
+        },
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        id: expect.any(String),
+        nom: 'SIG Ville',
+        token: expect.any(String),
+        type: SourceTypeEnum.PRIVATE,
+        siret: '12345678901234',
+        defaultAuthor: {
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          email: 'jean.dupont@example.com',
+        },
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
+    });
+
+    it('should ignore defaultAuthor for a public source', async () => {
+      const createSourceDTO: CreateSourceDTO = {
+        type: SourceTypeEnum.PUBLIC,
+        nom: 'Pifomètre',
+        defaultAuthor: {
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          email: 'jean.dupont@example.com',
+        },
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body.defaultAuthor).toBeNull();
+    });
+
+    it('should reject an invalid defaultAuthor email', async () => {
+      const createSourceDTO = {
+        type: SourceTypeEnum.PRIVATE,
+        nom: 'SIG Ville',
+        siret: '12345678901234',
+        defaultAuthor: {
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          email: 'not-an-email',
+        },
+      };
+
+      await request(app.getHttpServer())
+        .post('/sources')
+        .send(createSourceDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(400);
     });
   });
 
@@ -282,6 +358,197 @@ describe('Source module', () => {
       await request(app.getHttpServer())
         .get(`/sources/${sourceId}`)
         .expect(404);
+    });
+  });
+
+  describe('PUT /sources/:idSource', () => {
+    it('should throw 401 if no authorization', async () => {
+      const source = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .put(`/sources/${source.id}`)
+        .send({ nom: 'New name' })
+        .expect(401);
+    });
+
+    it('should update the nom of a source', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({ nom: 'SIG Ville renommée' })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.nom).toBe('SIG Ville renommée');
+    });
+
+    it('should update the defaultAuthor of a private source', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({
+          defaultAuthor: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            email: 'jean.dupont@example.com',
+          },
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.defaultAuthor).toEqual({
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean.dupont@example.com',
+      });
+    });
+
+    it('should update both nom and defaultAuthor', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({
+          nom: 'SIG Ville renommée',
+          defaultAuthor: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            email: 'jean.dupont@example.com',
+          },
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.nom).toBe('SIG Ville renommée');
+      expect(response.body.defaultAuthor).toEqual({
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean.dupont@example.com',
+      });
+    });
+
+    it('should reject an invalid defaultAuthor email', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({
+          defaultAuthor: {
+            email: 'not-an-email',
+          },
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    });
+
+    it('should allow the source owner to update its own source', async () => {
+      const { token, ...privateSource } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({
+          nom: 'SIG Ville renommée',
+          defaultAuthor: {
+            firstName: 'Jean',
+            lastName: 'Dupont',
+            email: 'jean.dupont@example.com',
+          },
+        })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(response.body.nom).toBe('SIG Ville renommée');
+      expect(response.body.defaultAuthor).toEqual({
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        email: 'jean.dupont@example.com',
+      });
+    });
+
+    it('should reject a source owner trying to update another source', async () => {
+      const source1 = new Source({
+        nom: 'SIG Ville 1',
+        type: SourceTypeEnum.PRIVATE,
+        siret: '12345678901234',
+      });
+      const { token: token1 } = await createRecording(
+        sourceRepository,
+        source1,
+      );
+
+      const source2 = new Source({
+        nom: 'SIG Ville 2',
+        type: SourceTypeEnum.PRIVATE,
+        siret: '98765432109876',
+      });
+      const privateSource2 = await createRecording(sourceRepository, source2);
+
+      await request(app.getHttpServer())
+        .put(`/sources/${privateSource2.id}`)
+        .send({ nom: 'Hijack' })
+        .set('Authorization', `Bearer ${token1}`)
+        .expect(403);
+    });
+
+    it('should reject an unknown bearer token', async () => {
+      const privateSource = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+          siret: '12345678901234',
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .put(`/sources/${privateSource.id}`)
+        .send({ nom: 'New name' })
+        .set('Authorization', 'Bearer unknown-token')
+        .expect(401);
     });
   });
 });

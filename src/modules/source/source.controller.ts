@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -22,10 +23,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CreateSourceDTO } from './source.dto';
+import { CreateSourceDTO, UpdateSourceDTO } from './source.dto';
 import { SourceTypeEnum } from './source.types';
 import { AdminGuard } from '../../common/admin.guard';
 import { Source } from './source.entity';
+import { SourceGuard } from './source.guard';
 
 @ApiTags('sources')
 @Controller('sources')
@@ -111,5 +113,29 @@ export class SourceController {
     const newSource = await this.sourceService.createOne(createSourceDTO);
 
     res.status(HttpStatus.OK).json(newSource);
+  }
+
+  @Put('/:idSource')
+  @ApiOperation({
+    summary: 'Update a source',
+    operationId: 'updateSource',
+  })
+  @ApiParam({ name: 'idSource', required: true, type: String })
+  @ApiBody({ type: UpdateSourceDTO, required: true })
+  @ApiResponse({ status: HttpStatus.OK, type: Source })
+  @ApiBearerAuth('source-token')
+  @UseGuards(SourceGuard)
+  async updateSource(
+    @Req() req: Request,
+    @Body() updateSourceDTO: UpdateSourceDTO,
+    @Res() res: Response,
+    @Param('idSource') idSource: string,
+  ) {
+    const updatedSource = await this.sourceService.updateOne(
+      idSource,
+      updateSourceDTO,
+    );
+
+    res.status(HttpStatus.OK).json(updatedSource);
   }
 }

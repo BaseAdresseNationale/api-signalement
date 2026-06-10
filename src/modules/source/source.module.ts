@@ -1,4 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  RequestMethod,
+  forwardRef,
+} from '@nestjs/common';
 import { SourceController } from './source.controller';
 import { SourceService } from './source.service';
 import { SourceMiddleware } from './source.middleware';
@@ -11,4 +16,10 @@ import { Source } from './source.entity';
   providers: [SourceService, SourceMiddleware],
   exports: [SourceService, SourceMiddleware],
 })
-export class SourceModule {}
+export class SourceModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(SourceMiddleware)
+      .forRoutes({ path: 'sources/:idSource', method: RequestMethod.PUT });
+  }
+}
