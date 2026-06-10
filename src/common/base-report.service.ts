@@ -196,7 +196,9 @@ export abstract class BaseReportService<T extends Report> {
       withAuthor: true,
     })) as any;
 
-    const source = await this.sourceService.findOneOrFail(entity.source.id);
+    const source = await this.sourceService.findOneOrFail(entity.source.id, {
+      withAuthor: true,
+    });
     const defaultAuthor = source.defaultAuthor;
     const authorEmail = author?.email || defaultAuthor?.email;
 

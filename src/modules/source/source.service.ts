@@ -13,8 +13,15 @@ export class SourceService {
     private readonly sourceRepository: Repository<Source>,
   ) {}
 
-  async findOneOrFail(id: string): Promise<Source> {
-    const source = await this.sourceRepository.findOne({ where: { id } });
+  async findOneOrFail(
+    id: string,
+    options?: { withAuthor?: boolean },
+  ): Promise<Source> {
+    const { withAuthor = false } = options || {};
+    const source = await this.sourceRepository.findOne({
+      where: { id },
+      ...(withAuthor && { select: getCols(this.sourceRepository) }),
+    });
     if (!source) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
