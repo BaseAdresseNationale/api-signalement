@@ -5,6 +5,7 @@ import { generateToken } from '../../utils/token.utils';
 import { ApiProperty } from '@nestjs/swagger';
 import { SourceTypeEnum } from './source.types';
 import { Report } from '../report/report.entity';
+import { Author } from '../../common/schema/author.schema';
 
 @Entity('sources')
 export class Source extends BaseEntity {
@@ -34,15 +35,20 @@ export class Source extends BaseEntity {
   })
   reports?: Report[];
 
+  @Column('jsonb', { select: false, nullable: true })
+  @ApiProperty({ required: false, nullable: true, type: Author })
+  defaultAuthor?: Author;
+
   constructor(createInput: CreateSourceDTO) {
     super();
     if (createInput) {
-      const { nom, type, siret } = createInput;
+      const { nom, type, siret, defaultAuthor } = createInput;
       this.nom = nom;
       this.type = type;
       this.siret = siret;
       if (type === SourceTypeEnum.PRIVATE) {
         this.token = generateToken();
+        this.defaultAuthor = defaultAuthor;
       }
     }
   }
