@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Report } from './report.entity';
 import { PaginatedResult } from '../../common/dto/paginated-result.dto';
+import { Author } from '../../common/schema/author.schema';
+import { ReportStatusEnum } from '../../common/report-status.enum';
 
 @Injectable()
 export class ReportService {
@@ -49,5 +51,68 @@ export class ReportService {
       page: pagination.page,
       limit: pagination.limit,
     };
+  }
+
+  /**
+   * Anonymise les données personnelles des auteurs des signalements et alertes
+   * clôturés (statut différent de PENDING) créés il y a plus de `years` années.
+   *
+   * Stratégie : `firstName`, `lastName` et `email` sont supprimés. Seul le
+   * domaine de l'email est conservé (champ `emailDomain`) afin de préserver la
+   * possibilité de statistiques par type de déclarant. Un horodatage
+   * `anonymizedAt` est ajouté pour garantir l'idempotence et la traçabilité.
+   *
+   * @returns le nombre de rapports anonymisés
+   */
+  async anonymizeReportsOlderThan(years: number): Promise<number> {
+    const threshold = new Date();
+    threshold.setFullYear(threshold.getFullYear() - years);
+
+    const reports = await this.reportRepository
+      .createQueryBuilder('report')
+      .select(['report.id', 'report.author'])
+      .where('report.createdAt < :threshold', { threshold })
+      .andWhere('report.status != :pendingStatus', {
+        pendingStatus: ReportStatusEnum.PENDING,
+      })
+      .andWhere('report.author IS NOT NULL')
+      .andWhere("report.author ->> 'anonymizedAt' IS NULL")
+      .getMany();
+
+    if (reports.length === 0) {
+      return 0;
+    }
+
+    const anonymizedAt = new Date();
+
+    for (const report of reports) {
+      await this.reportRepository.update(report.id, {
+        author: ReportService.anonymizeAuthor(report.author, anonymizedAt),
+      });
+    }
+
+    return reports.length;
+  }
+
+  private static anonymizeAuthor(author: Author, anonymizedAt: Date): Author {
+    const emailDomain = ReportService.extractEmailDomain(author?.email);
+
+    return {
+      ...(emailDomain ? { emailDomain } : {}),
+      anonymizedAt,
+    };
+  }
+
+  private static extractEmailDomain(email?: string): string | undefined {
+    if (!email) {
+      return undefined;
+    }
+
+    const atIndex = email.lastIndexOf('@');
+    if (atIndex === -1) {
+      return undefined;
+    }
+
+    return email.slice(atIndex + 1).toLowerCase() || undefined;
   }
 }
