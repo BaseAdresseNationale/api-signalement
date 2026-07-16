@@ -7,6 +7,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { getCommune } from '../../utils/cog.utils';
 import { AlertService } from '../alert/alert.service';
+import { ReportService } from '../report/report.service';
 
 @Injectable()
 export class TaskService {
@@ -15,11 +16,26 @@ export class TaskService {
   constructor(
     private readonly signalementService: SignalementService,
     private readonly alertService: AlertService,
+    private readonly reportService: ReportService,
     private readonly mesAdressesAPIService: MesAdressesAPIService,
     private readonly dataGouvService: DataGouvService,
     private readonly mailerService: MailerService,
     private configService: ConfigService,
   ) {}
+
+  // Cron job that runs every day at 1:00 AM
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  async expireAndAnonymizeOldReports() {
+    this.logger.log('Start task : expireAndAnonymizeOldReports');
+
+    // Expire and anonymize reports older than 3 years
+    const processedCount =
+      await this.reportService.expireAndAnonymizeReportsOlderThan(3);
+
+    this.logger.log(
+      `End task : expireAndAnonymizeOldReports, processed ${processedCount} reports`,
+    );
+  }
 
   // Cron job that runs every Tuesday at 10:00 AM
   @Cron('0 10 * * 2')

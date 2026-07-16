@@ -27,6 +27,7 @@ import { ReportStatusEnum } from '../common/report-status.enum';
 import { AlertModule } from '../modules/alert/alert.module';
 import { Alert } from '../modules/alert/alert.entity';
 import { AlertTypeEnum } from '../modules/alert/alert.types';
+import { ReportModule } from '../modules/report/report.module';
 
 const getPendingSignalementsReportMock = jest.fn(() =>
   Promise.resolve([
@@ -126,6 +127,7 @@ describe('Task module', () => {
         }),
         SignalementModule,
         AlertModule,
+        ReportModule,
       ],
       providers: [TaskService],
     }).compile();
@@ -450,6 +452,202 @@ describe('Task module', () => {
       expect(commune37185).toContain(',0,0,1,1,2,0,2,1,0,3');
       // 75056: no signalements ; alerts 1 pending, 0, 0, 0, 1 total
       expect(commune75056).toContain(',0,0,0,0,0,1,0,0,0,1');
+    });
+  });
+
+  describe('Task expireAndAnonymizeOldReports', () => {
+    const buildSignalement = (
+      source: Source,
+      status: ReportStatusEnum = ReportStatusEnum.PROCESSED,
+    ) => {
+      const signalement = new Signalement({
+        codeCommune: '37003',
+        author: {
+          firstName: 'Jean',
+          lastName: 'Dupont',
+          email: 'Jean.Dupont@Paris.fr',
+        },
+        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        },
+        changesRequested: {
+          numero: 3,
+          suffixe: 'ter',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+            },
+          ],
+          parcelles: ['37003000BA0744'],
+        } as NumeroChangesRequestedDTO,
+      });
+      signalement.source = source;
+      signalement.status = status;
+      return signalement;
+    };
+
+    const setCreatedAt = (id: string, createdAt: Date) =>
+      postgresClient.query('UPDATE reports SET created_at = $1 WHERE id = $2', [
+        createdAt,
+        id,
+      ]);
+
+    const getAuthor = async (id: string) => {
+      const report = await signalementRepository
+        .createQueryBuilder('signalement')
+        .addSelect('signalement.author')
+        .where('signalement.id = :id', { id })
+        .getOne();
+      return report?.author;
+    };
+
+    it('should anonymize authors of reports older than 3 years and keep recent ones untouched', async () => {
+      const source = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Mes signalements',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const oldSignalement = await createRecording(
+        signalementRepository,
+        buildSignalement(source),
+      );
+      const recentSignalement = await createRecording(
+        signalementRepository,
+        buildSignalement(source),
+      );
+
+      const oldDate = new Date();
+      oldDate.setFullYear(oldDate.getFullYear() - 4);
+      await setCreatedAt(oldSignalement.id, oldDate);
+
+      const oldAlert = await createRecording(
+        alertRepository,
+        (() => {
+          const alert = new Alert({
+            codeCommune: '37185',
+            type: AlertTypeEnum.MISSING_ADDRESS,
+            point: {
+              type: 'Point',
+              coordinates: [0.982904, 47.410998],
+            } as any,
+            comment: 'Adresse manquante',
+            author: {
+              firstName: 'Marie',
+              lastName: 'Martin',
+              email: 'marie.martin@gmail.com',
+            },
+          });
+          alert.source = source;
+          alert.status = ReportStatusEnum.IGNORED;
+          return alert;
+        })(),
+      );
+      await setCreatedAt(oldAlert.id, oldDate);
+
+      await app.get(TaskService).expireAndAnonymizeOldReports();
+
+      // Old signalement anonymized: PII removed, only domain + timestamp kept
+      const oldAuthor = await getAuthor(oldSignalement.id);
+      expect(oldAuthor?.firstName).toBeUndefined();
+      expect(oldAuthor?.lastName).toBeUndefined();
+      expect(oldAuthor?.email).toBeUndefined();
+      expect(oldAuthor?.emailDomain).toBe('paris.fr');
+      expect(oldAuthor?.anonymizedAt).toBeDefined();
+
+      // Recent signalement untouched
+      const recentAuthor = await getAuthor(recentSignalement.id);
+      expect(recentAuthor?.firstName).toBe('Jean');
+      expect(recentAuthor?.lastName).toBe('Dupont');
+      expect(recentAuthor?.email).toBe('Jean.Dupont@Paris.fr');
+      expect(recentAuthor?.anonymizedAt).toBeUndefined();
+
+      // Old alert anonymized too (shared reports table)
+      const oldAlertRecord = await alertRepository
+        .createQueryBuilder('alert')
+        .addSelect('alert.author')
+        .where('alert.id = :id', { id: oldAlert.id })
+        .getOne();
+      expect(oldAlertRecord?.author?.email).toBeUndefined();
+      expect(oldAlertRecord?.author?.emailDomain).toBe('gmail.com');
+      expect(oldAlertRecord?.author?.anonymizedAt).toBeDefined();
+    });
+
+    it('should be idempotent and not re-anonymize already anonymized reports', async () => {
+      const source = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Mes signalements',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const oldSignalement = await createRecording(
+        signalementRepository,
+        buildSignalement(source),
+      );
+
+      const oldDate = new Date();
+      oldDate.setFullYear(oldDate.getFullYear() - 4);
+      await setCreatedAt(oldSignalement.id, oldDate);
+
+      await app.get(TaskService).expireAndAnonymizeOldReports();
+      const firstPassAuthor = await getAuthor(oldSignalement.id);
+      const firstAnonymizedAt = firstPassAuthor?.anonymizedAt;
+
+      await app.get(TaskService).expireAndAnonymizeOldReports();
+      const secondPassAuthor = await getAuthor(oldSignalement.id);
+
+      expect(secondPassAuthor?.anonymizedAt).toEqual(firstAnonymizedAt);
+    });
+
+    it('should expire and anonymize old reports that are still PENDING', async () => {
+      const source = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Mes signalements',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const oldPendingSignalement = await createRecording(
+        signalementRepository,
+        buildSignalement(source, ReportStatusEnum.PENDING),
+      );
+
+      const oldDate = new Date();
+      oldDate.setFullYear(oldDate.getFullYear() - 4);
+      await setCreatedAt(oldPendingSignalement.id, oldDate);
+
+      await app.get(TaskService).expireAndAnonymizeOldReports();
+
+      // PENDING report is expired
+      const updated = await signalementRepository.findOne({
+        where: { id: oldPendingSignalement.id },
+      });
+      expect(updated?.status).toBe(ReportStatusEnum.EXPIRED);
+
+      // ...and anonymized
+      const author = await getAuthor(oldPendingSignalement.id);
+      expect(author?.firstName).toBeUndefined();
+      expect(author?.lastName).toBeUndefined();
+      expect(author?.email).toBeUndefined();
+      expect(author?.emailDomain).toBe('paris.fr');
+      expect(author?.anonymizedAt).toBeDefined();
     });
   });
 });

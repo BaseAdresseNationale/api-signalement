@@ -5,11 +5,13 @@ import { MesAdressesAPIModule } from '../mes-adresses-api/mes-adresses-api.modul
 import { DataGouvModule } from '../datagouv/datagouv.module';
 import { ConfigModule } from '@nestjs/config';
 import { AlertModule } from '../alert/alert.module';
+import { ReportModule } from '../report/report.module';
 
 @Module({
   imports: [
     forwardRef(() => SignalementModule),
     forwardRef(() => AlertModule),
+    ReportModule,
     MesAdressesAPIModule,
     DataGouvModule,
     ConfigModule,
