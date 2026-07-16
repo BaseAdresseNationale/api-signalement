@@ -23,11 +23,12 @@ export class TaskService {
     private configService: ConfigService,
   ) {}
 
-  // Cron job that runs every day at midnight
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  // Cron job that runs every day at 1:00 AM
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async expireAndAnonymizeOldReports() {
     this.logger.log('Start task : expireAndAnonymizeOldReports');
 
+    // Expire and anonymize reports older than 3 years
     const processedCount =
       await this.reportService.expireAndAnonymizeReportsOlderThan(3);
 
