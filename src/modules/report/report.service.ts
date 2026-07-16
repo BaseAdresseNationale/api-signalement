@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Report } from './report.entity';
 import { PaginatedResult } from '../../common/dto/paginated-result.dto';
 import { Author } from '../../common/schema/author.schema';
@@ -54,29 +54,35 @@ export class ReportService {
   }
 
   /**
-   * Anonymise les données personnelles des auteurs des signalements et alertes
-   * clôturés (statut différent de PENDING) créés il y a plus de `years` années.
+   * Traite les signalements et alertes créés il y a plus de `years` années.
    *
-   * Stratégie : `firstName`, `lastName` et `email` sont supprimés. Seul le
+   * Un rapport encore en attente (statut PENDING) est expiré (statut EXPIRED)
+   * puis anonymisé ; un rapport déjà clôturé est simplement anonymisé.
+   *
+   * Anonymisation : `firstName`, `lastName` et `email` sont supprimés. Seul le
    * domaine de l'email est conservé (champ `emailDomain`) afin de préserver la
    * possibilité de statistiques par type de déclarant. Un horodatage
    * `anonymizedAt` est ajouté pour garantir l'idempotence et la traçabilité.
    *
-   * @returns le nombre de rapports anonymisés
+   * @returns le nombre de rapports traités
    */
-  async anonymizeReportsOlderThan(years: number): Promise<number> {
+  async expireAndAnonymizeReportsOlderThan(years: number): Promise<number> {
     const threshold = new Date();
     threshold.setFullYear(threshold.getFullYear() - years);
 
     const reports = await this.reportRepository
       .createQueryBuilder('report')
-      .select(['report.id', 'report.author'])
+      .addSelect('report.author')
       .where('report.createdAt < :threshold', { threshold })
-      .andWhere('report.status != :pendingStatus', {
-        pendingStatus: ReportStatusEnum.PENDING,
-      })
-      .andWhere('report.author IS NOT NULL')
-      .andWhere("report.author ->> 'anonymizedAt' IS NULL")
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('report.status = :pendingStatus', {
+            pendingStatus: ReportStatusEnum.PENDING,
+          }).orWhere(
+            "report.author IS NOT NULL AND report.author ->> 'anonymizedAt' IS NULL",
+          );
+        }),
+      )
       .getMany();
 
     if (reports.length === 0) {
@@ -86,9 +92,20 @@ export class ReportService {
     const anonymizedAt = new Date();
 
     for (const report of reports) {
-      await this.reportRepository.update(report.id, {
-        author: ReportService.anonymizeAuthor(report.author, anonymizedAt),
-      });
+      const updatePayload: Partial<Report> = {};
+
+      if (report.author) {
+        updatePayload.author = ReportService.anonymizeAuthor(
+          report.author,
+          anonymizedAt,
+        );
+      }
+
+      if (report.status === ReportStatusEnum.PENDING) {
+        updatePayload.status = ReportStatusEnum.EXPIRED;
+      }
+
+      await this.reportRepository.update(report.id, updatePayload);
     }
 
     return reports.length;

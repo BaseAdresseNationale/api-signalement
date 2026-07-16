@@ -455,7 +455,7 @@ describe('Task module', () => {
     });
   });
 
-  describe('Task anonymizeOldReports', () => {
+  describe('Task expireAndAnonymizeOldReports', () => {
     const buildSignalement = (
       source: Source,
       status: ReportStatusEnum = ReportStatusEnum.PROCESSED,
@@ -559,7 +559,7 @@ describe('Task module', () => {
       );
       await setCreatedAt(oldAlert.id, oldDate);
 
-      await app.get(TaskService).anonymizeOldReports();
+      await app.get(TaskService).expireAndAnonymizeOldReports();
 
       // Old signalement anonymized: PII removed, only domain + timestamp kept
       const oldAuthor = await getAuthor(oldSignalement.id);
@@ -605,17 +605,17 @@ describe('Task module', () => {
       oldDate.setFullYear(oldDate.getFullYear() - 4);
       await setCreatedAt(oldSignalement.id, oldDate);
 
-      await app.get(TaskService).anonymizeOldReports();
+      await app.get(TaskService).expireAndAnonymizeOldReports();
       const firstPassAuthor = await getAuthor(oldSignalement.id);
       const firstAnonymizedAt = firstPassAuthor?.anonymizedAt;
 
-      await app.get(TaskService).anonymizeOldReports();
+      await app.get(TaskService).expireAndAnonymizeOldReports();
       const secondPassAuthor = await getAuthor(oldSignalement.id);
 
       expect(secondPassAuthor?.anonymizedAt).toEqual(firstAnonymizedAt);
     });
 
-    it('should not anonymize old reports that are still PENDING', async () => {
+    it('should expire and anonymize old reports that are still PENDING', async () => {
       const source = await createRecording(
         sourceRepository,
         new Source({
@@ -633,13 +633,21 @@ describe('Task module', () => {
       oldDate.setFullYear(oldDate.getFullYear() - 4);
       await setCreatedAt(oldPendingSignalement.id, oldDate);
 
-      await app.get(TaskService).anonymizeOldReports();
+      await app.get(TaskService).expireAndAnonymizeOldReports();
 
+      // PENDING report is expired
+      const updated = await signalementRepository.findOne({
+        where: { id: oldPendingSignalement.id },
+      });
+      expect(updated?.status).toBe(ReportStatusEnum.EXPIRED);
+
+      // ...and anonymized
       const author = await getAuthor(oldPendingSignalement.id);
-      expect(author?.firstName).toBe('Jean');
-      expect(author?.lastName).toBe('Dupont');
-      expect(author?.email).toBe('Jean.Dupont@Paris.fr');
-      expect(author?.anonymizedAt).toBeUndefined();
+      expect(author?.firstName).toBeUndefined();
+      expect(author?.lastName).toBeUndefined();
+      expect(author?.email).toBeUndefined();
+      expect(author?.emailDomain).toBe('paris.fr');
+      expect(author?.anonymizedAt).toBeDefined();
     });
   });
 });
