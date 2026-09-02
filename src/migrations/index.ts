@@ -7,6 +7,7 @@ import { MakeExistingLocationNullable1753954345161 } from './1753954345161-make-
 import { SingleTableInheritance1773308681996 } from './1773308681996-single-table-inheritance';
 import { AddSourceSiret1774447851299 } from './1774447851299-add-source-siret';
 import { AddSourceDefaultAuthor1781234567890 } from './1781234567890-add-source-default-author';
+import { AddClientPartenaireId1781234567900 } from './1781234567900-add-client-partenaire-id';
 
 export const migrations = [
   PostGisAddSignalementPoint1741898533813,
@@ -18,4 +19,5 @@ export const migrations = [
   SingleTableInheritance1773308681996,
   AddSourceSiret1774447851299,
   AddSourceDefaultAuthor1781234567890,
+  AddClientPartenaireId1781234567900,
 ];

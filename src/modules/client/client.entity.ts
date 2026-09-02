@@ -14,6 +14,10 @@ export class Client extends BaseEntity {
   @Column({ select: false })
   token?: string;
 
+  @Column('text', { name: 'partenaire_id', nullable: true })
+  @ApiProperty({ required: false, nullable: true, type: String })
+  partenaireId?: string;
+
   @OneToMany(() => Report, (report) => report.processedBy, {
     persistence: false,
   })
@@ -28,8 +32,9 @@ export class Client extends BaseEntity {
   constructor(createInput: CreateClientDTO) {
     super();
     if (createInput) {
-      const { nom } = createInput;
+      const { nom, partenaireId } = createInput;
       this.nom = nom;
+      this.partenaireId = partenaireId;
       this.token = generateToken();
     }
   }
