@@ -26,6 +26,7 @@ import {
 import { AlertStatusEnum, AlertTypeEnum } from './alert.types';
 import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
+import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guard';
 import { In } from 'typeorm';
 import { Client } from '../client/client.entity';
 import { TrimPipe } from '../../common/trim.pipe';
@@ -147,6 +148,7 @@ export class AlertController {
     type: Alert,
   })
   @ApiBearerAuth('client-token')
+  @UseGuards(PartenairePerimeterGuard)
   async getAlertById(
     @Req() req: Request & { registeredClient: Client },
     @Res() res: Response,
@@ -168,7 +170,7 @@ export class AlertController {
   @ApiBody({ type: UpdateAlertDTO, required: true })
   @ApiResponse({ status: HttpStatus.OK, type: Alert })
   @ApiBearerAuth('client-token')
-  @UseGuards(ClientGuard)
+  @UseGuards(ClientGuard, PartenairePerimeterGuard)
   async updateAlert(
     @Req() req: Request & { registeredClient: { id: string } },
     @Body() updateAlertDTO: UpdateAlertDTO,
