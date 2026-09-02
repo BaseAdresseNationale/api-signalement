@@ -8,6 +8,7 @@ import { Report } from '../modules/report/report.entity';
 import { getCols } from '../utils/repository.utils';
 import { ReportStatusEnum } from './report-status.enum';
 import { PaginatedResult } from './dto/paginated-result.dto';
+import { MonthlyReportCountsDTO, StatsDTO } from '../modules/stats/stats.dto';
 
 export interface CreateReportDTO {
   codeCommune: string;
@@ -64,6 +65,122 @@ export abstract class BaseReportService<T extends Report> {
       commune: entity.nomCommune,
       rejectionReason: entity.rejectionReason,
     };
+  }
+
+  async getStats(): Promise<StatsDTO> {
+    const total = await this.repository
+      .createQueryBuilder(this.entityAlias)
+      .getCount();
+
+    const [fromSources, processedBy, byMonth] = await Promise.all([
+      this.getStatsGroupedByRelation('sources', 'source_id'),
+      this.getStatsGroupedByRelation('clients', 'processed_by'),
+      this.getMonthlyStats(),
+    ]);
+
+    return { total, fromSources, processedBy, byMonth };
+  }
+
+  // Agrège mois par mois (date 'YYYY-MM') le nombre de reports créés
+  // (created_at) et traités (updated_at des reports au statut PROCESSED, mis à
+  // jour une seule fois lors du traitement). Renvoie une ligne par (mois, type)
+  // pour être directement exploitable par les graphiques ant-design, en
+  // comblant les mois sans donnée entre le plus ancien et le plus récent
+  // (count à 0).
+  private async getMonthlyStats(): Promise<MonthlyReportCountsDTO[]> {
+    const { tableName, discriminatorColumn, discriminatorValue } =
+      this.repository.metadata;
+
+    const [{ result }] = await this.repository.manager.query<
+      [{ result: MonthlyReportCountsDTO[] }]
+    >(
+      `
+        WITH events AS (
+          SELECT date_trunc('month', report.created_at) AS month,
+                 'created'::text AS type
+          FROM ${tableName} report
+          WHERE report.${discriminatorColumn.databaseName} = $1
+          UNION ALL
+          SELECT date_trunc('month', report.updated_at) AS month,
+                 'processed'::text AS type
+          FROM ${tableName} report
+          WHERE report.${discriminatorColumn.databaseName} = $1
+            AND report.status = $2
+        ),
+        counts AS (
+          SELECT month, type, COUNT(*) AS count
+          FROM events
+          GROUP BY month, type
+        ),
+        bounds AS (
+          SELECT MIN(month) AS min_month, MAX(month) AS max_month FROM events
+        ),
+        grid AS (
+          SELECT gs.month, t.type
+          FROM bounds,
+               generate_series(
+                 bounds.min_month,
+                 bounds.max_month,
+                 interval '1 month'
+               ) AS gs(month)
+          CROSS JOIN (VALUES ('created'), ('processed')) AS t(type)
+          WHERE bounds.min_month IS NOT NULL
+        )
+        SELECT COALESCE(
+                 jsonb_agg(
+                   jsonb_build_object(
+                     'date', to_char(grid.month, 'YYYY-MM'),
+                     'type', grid.type,
+                     'count', COALESCE(counts.count, 0)
+                   )
+                   ORDER BY grid.month, grid.type
+                 ),
+                 '[]'::jsonb
+               ) AS result
+        FROM grid
+        LEFT JOIN counts
+          ON counts.month = grid.month
+          AND counts.type = grid.type
+      `,
+      [discriminatorValue, ReportStatusEnum.PROCESSED],
+    );
+
+    return result ?? [];
+  }
+
+  // Agrège directement en base la structure { [nom]: { [status]: count } }
+  // via jsonb_object_agg, ce qui évite tout post-traitement en JS.
+  private async getStatsGroupedByRelation(
+    relationTable: 'sources' | 'clients',
+    foreignKey: 'source_id' | 'processed_by',
+  ): Promise<Record<string, Record<ReportStatusEnum, number>>> {
+    const { tableName, discriminatorColumn, discriminatorValue } =
+      this.repository.metadata;
+
+    const [{ result }] = await this.repository.manager.query<
+      [{ result: Record<string, Record<ReportStatusEnum, number>> | null }]
+    >(
+      `
+        SELECT jsonb_object_agg(name, statuses) AS result
+        FROM (
+          SELECT relation.nom AS name,
+                 jsonb_object_agg(counts.status, counts.count) AS statuses
+          FROM (
+            SELECT report.${foreignKey} AS relation_id,
+                   report.status AS status,
+                   COUNT(report.id) AS count
+            FROM ${tableName} report
+            WHERE report.${discriminatorColumn.databaseName} = $1
+            GROUP BY report.${foreignKey}, report.status
+          ) counts
+          JOIN ${relationTable} relation ON relation.id = counts.relation_id
+          GROUP BY relation.nom
+        ) grouped
+      `,
+      [discriminatorValue],
+    );
+
+    return result ?? {};
   }
 
   async findOneOrFail(
