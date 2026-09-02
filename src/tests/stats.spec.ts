@@ -212,13 +212,13 @@ describe('Stats module', () => {
           total: 0,
           fromSources: {},
           processedBy: {},
-          byMonth: {},
+          byMonth: [],
         },
         alertStats: {
           total: 0,
           fromSources: {},
           processedBy: {},
-          byMonth: {},
+          byMonth: [],
         },
       });
     });
@@ -285,9 +285,10 @@ describe('Stats module', () => {
             [SignalementStatusEnum.PROCESSED]: 1,
           },
         },
-        byMonth: {
-          [currentMonth]: { created: 3, processed: 1 },
-        },
+        byMonth: [
+          { date: currentMonth, type: 'created', count: 3 },
+          { date: currentMonth, type: 'processed', count: 1 },
+        ],
       });
 
       expect(response.body.alertStats).toEqual({
@@ -303,10 +304,76 @@ describe('Stats module', () => {
             [AlertStatusEnum.PROCESSED]: 1,
           },
         },
-        byMonth: {
-          [currentMonth]: { created: 2, processed: 1 },
-        },
+        byMonth: [
+          { date: currentMonth, type: 'created', count: 2 },
+          { date: currentMonth, type: 'processed', count: 1 },
+        ],
       });
+    });
+
+    it('should fill missing months with zero counts between the oldest and newest month', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: clientToken, ...client } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Mes adresses',
+        }),
+      );
+
+      const pending1 = await createRecording(
+        signalementRepository,
+        createSignalementEntity(source),
+      );
+      const pending2 = await createRecording(
+        signalementRepository,
+        createSignalementEntity(source),
+      );
+      const processed = await createRecording(
+        signalementRepository,
+        createSignalementEntity(source, {
+          status: SignalementStatusEnum.PROCESSED,
+          processedBy: client as Client,
+        }),
+      );
+
+      // Backdate en SQL brut pour ne pas déclencher l'auto-update de updated_at :
+      // 3 créations en janvier, 1 traitement en avril -> trous en février/mars.
+      await signalementRepository.query(
+        'UPDATE reports SET created_at = $1, updated_at = $1 WHERE id = $2',
+        ['2026-01-15T00:00:00Z', pending1.id],
+      );
+      await signalementRepository.query(
+        'UPDATE reports SET created_at = $1, updated_at = $1 WHERE id = $2',
+        ['2026-01-20T00:00:00Z', pending2.id],
+      );
+      await signalementRepository.query(
+        'UPDATE reports SET created_at = $1, updated_at = $2 WHERE id = $3',
+        ['2026-01-25T00:00:00Z', '2026-04-10T00:00:00Z', processed.id],
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/stats')
+        .expect(200);
+
+      expect(response.body.signalementStats.byMonth).toEqual([
+        { date: '2026-01', type: 'created', count: 3 },
+        { date: '2026-01', type: 'processed', count: 0 },
+        { date: '2026-02', type: 'created', count: 0 },
+        { date: '2026-02', type: 'processed', count: 0 },
+        { date: '2026-03', type: 'created', count: 0 },
+        { date: '2026-03', type: 'processed', count: 0 },
+        { date: '2026-04', type: 'created', count: 0 },
+        { date: '2026-04', type: 'processed', count: 1 },
+      ]);
     });
   });
 });

@@ -8,7 +8,7 @@ import { Report } from '../modules/report/report.entity';
 import { getCols } from '../utils/repository.utils';
 import { ReportStatusEnum } from './report-status.enum';
 import { PaginatedResult } from './dto/paginated-result.dto';
-import { StatsDTO } from '../modules/stats/stats.dto';
+import { MonthlyReportCountsDTO, StatsDTO } from '../modules/stats/stats.dto';
 
 export interface CreateReportDTO {
   codeCommune: string;
@@ -81,52 +81,71 @@ export abstract class BaseReportService<T extends Report> {
     return { total, fromSources, processedBy, byMonth };
   }
 
-  // Agrège par mois (clé 'YYYY-MM') le nombre de reports créés (created_at)
-  // et traités (updated_at des reports au statut PROCESSED, mis à jour une
-  // seule fois lors du traitement).
-  private async getMonthlyStats(): Promise<
-    Record<string, { created: number; processed: number }>
-  > {
+  // Agrège mois par mois (date 'YYYY-MM') le nombre de reports créés
+  // (created_at) et traités (updated_at des reports au statut PROCESSED, mis à
+  // jour une seule fois lors du traitement). Renvoie une ligne par (mois, type)
+  // pour être directement exploitable par les graphiques ant-design, en
+  // comblant les mois sans donnée entre le plus ancien et le plus récent
+  // (count à 0).
+  private async getMonthlyStats(): Promise<MonthlyReportCountsDTO[]> {
     const { tableName, discriminatorColumn, discriminatorValue } =
       this.repository.metadata;
 
     const [{ result }] = await this.repository.manager.query<
-      [
-        {
-          result: Record<string, { created: number; processed: number }> | null;
-        },
-      ]
+      [{ result: MonthlyReportCountsDTO[] }]
     >(
       `
-        SELECT jsonb_object_agg(
-                 month,
-                 jsonb_build_object('created', created, 'processed', processed)
+        WITH events AS (
+          SELECT date_trunc('month', report.created_at) AS month,
+                 'created'::text AS type
+          FROM ${tableName} report
+          WHERE report.${discriminatorColumn.databaseName} = $1
+          UNION ALL
+          SELECT date_trunc('month', report.updated_at) AS month,
+                 'processed'::text AS type
+          FROM ${tableName} report
+          WHERE report.${discriminatorColumn.databaseName} = $1
+            AND report.status = $2
+        ),
+        counts AS (
+          SELECT month, type, COUNT(*) AS count
+          FROM events
+          GROUP BY month, type
+        ),
+        bounds AS (
+          SELECT MIN(month) AS min_month, MAX(month) AS max_month FROM events
+        ),
+        grid AS (
+          SELECT gs.month, t.type
+          FROM bounds,
+               generate_series(
+                 bounds.min_month,
+                 bounds.max_month,
+                 interval '1 month'
+               ) AS gs(month)
+          CROSS JOIN (VALUES ('created'), ('processed')) AS t(type)
+          WHERE bounds.min_month IS NOT NULL
+        )
+        SELECT COALESCE(
+                 jsonb_agg(
+                   jsonb_build_object(
+                     'date', to_char(grid.month, 'YYYY-MM'),
+                     'type', grid.type,
+                     'count', COALESCE(counts.count, 0)
+                   )
+                   ORDER BY grid.month, grid.type
+                 ),
+                 '[]'::jsonb
                ) AS result
-        FROM (
-          SELECT month,
-                 SUM(created) AS created,
-                 SUM(processed) AS processed
-          FROM (
-            SELECT to_char(report.created_at, 'YYYY-MM') AS month,
-                   1 AS created,
-                   0 AS processed
-            FROM ${tableName} report
-            WHERE report.${discriminatorColumn.databaseName} = $1
-            UNION ALL
-            SELECT to_char(report.updated_at, 'YYYY-MM') AS month,
-                   0 AS created,
-                   1 AS processed
-            FROM ${tableName} report
-            WHERE report.${discriminatorColumn.databaseName} = $1
-              AND report.status = $2
-          ) events
-          GROUP BY month
-        ) monthly
+        FROM grid
+        LEFT JOIN counts
+          ON counts.month = grid.month
+          AND counts.type = grid.type
       `,
       [discriminatorValue, ReportStatusEnum.PROCESSED],
     );
 
-    return result ?? {};
+    return result ?? [];
   }
 
   // Agrège directement en base la structure { [nom]: { [status]: count } }
