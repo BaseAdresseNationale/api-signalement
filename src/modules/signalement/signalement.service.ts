@@ -16,7 +16,6 @@ import {
   BaseReportService,
   CreateReportDTO,
 } from '../../common/base-report.service';
-import { StatsDTO } from '../stats/stats.dto';
 import { ReportStatusEnum } from '../../common/report-status.enum';
 import { getCommune } from '../../utils/cog.utils';
 
@@ -63,67 +62,6 @@ export class SignalementService extends BaseReportService<Signalement> {
       ...super.buildEmailContext(entity),
       location: `${getSignalementLocationLabel(signalement)} - ${entity.nomCommune}`,
       locationType: getSignalementLocationTypeLabel(signalement),
-    };
-  }
-
-  async getStats(): Promise<StatsDTO> {
-    const qb = this.repository.createQueryBuilder('signalement');
-
-    const signalementCount = await qb.getCount();
-
-    const signalementsBySources: Array<{
-      count: number;
-      source: string;
-      status: SignalementStatusEnum;
-    }> = await qb
-      .select('source.nom', 'source')
-      .addSelect('COUNT(signalement.id)', 'count')
-      .addSelect('signalement.status', 'status')
-      .groupBy('source.id')
-      .addGroupBy('signalement.status')
-      .leftJoin('signalement.source', 'source')
-      .getRawMany();
-
-    const signalementsProcessedByClients: Array<{
-      count: number;
-      client: string | null;
-      status: SignalementStatusEnum;
-    }> = await qb
-      .select('client.nom', 'client')
-      .addSelect('COUNT(signalement.id)', 'count')
-      .addSelect('signalement.status', 'status')
-      .groupBy('client.id')
-      .addGroupBy('signalement.status')
-      .leftJoin('signalement.processedBy', 'client')
-      .getRawMany();
-
-    return {
-      total: signalementCount,
-      fromSources: signalementsBySources.reduce(
-        (acc, { source, count, status }) => {
-          if (!acc[source]) {
-            acc[source] = {};
-          }
-          acc[source][status] = Number(count);
-
-          return acc;
-        },
-        {},
-      ),
-      processedBy: signalementsProcessedByClients.reduce(
-        (acc, { client, count, status }) => {
-          if (!client) {
-            return acc;
-          }
-          if (!acc[client]) {
-            acc[client] = {};
-          }
-          acc[client][status] = Number(count);
-
-          return acc;
-        },
-        {},
-      ),
     };
   }
 

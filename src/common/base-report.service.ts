@@ -8,6 +8,7 @@ import { Report } from '../modules/report/report.entity';
 import { getCols } from '../utils/repository.utils';
 import { ReportStatusEnum } from './report-status.enum';
 import { PaginatedResult } from './dto/paginated-result.dto';
+import { StatsDTO } from '../modules/stats/stats.dto';
 
 export interface CreateReportDTO {
   codeCommune: string;
@@ -64,6 +65,103 @@ export abstract class BaseReportService<T extends Report> {
       commune: entity.nomCommune,
       rejectionReason: entity.rejectionReason,
     };
+  }
+
+  async getStats(): Promise<StatsDTO> {
+    const total = await this.repository
+      .createQueryBuilder(this.entityAlias)
+      .getCount();
+
+    const [fromSources, processedBy, byMonth] = await Promise.all([
+      this.getStatsGroupedByRelation('sources', 'source_id'),
+      this.getStatsGroupedByRelation('clients', 'processed_by'),
+      this.getMonthlyStats(),
+    ]);
+
+    return { total, fromSources, processedBy, byMonth };
+  }
+
+  // Agrège par mois (clé 'YYYY-MM') le nombre de reports créés (created_at)
+  // et traités (updated_at des reports au statut PROCESSED, mis à jour une
+  // seule fois lors du traitement).
+  private async getMonthlyStats(): Promise<
+    Record<string, { created: number; processed: number }>
+  > {
+    const { tableName, discriminatorColumn, discriminatorValue } =
+      this.repository.metadata;
+
+    const [{ result }] = await this.repository.manager.query<
+      [
+        {
+          result: Record<string, { created: number; processed: number }> | null;
+        },
+      ]
+    >(
+      `
+        SELECT jsonb_object_agg(
+                 month,
+                 jsonb_build_object('created', created, 'processed', processed)
+               ) AS result
+        FROM (
+          SELECT month,
+                 SUM(created) AS created,
+                 SUM(processed) AS processed
+          FROM (
+            SELECT to_char(report.created_at, 'YYYY-MM') AS month,
+                   1 AS created,
+                   0 AS processed
+            FROM ${tableName} report
+            WHERE report.${discriminatorColumn.databaseName} = $1
+            UNION ALL
+            SELECT to_char(report.updated_at, 'YYYY-MM') AS month,
+                   0 AS created,
+                   1 AS processed
+            FROM ${tableName} report
+            WHERE report.${discriminatorColumn.databaseName} = $1
+              AND report.status = $2
+          ) events
+          GROUP BY month
+        ) monthly
+      `,
+      [discriminatorValue, ReportStatusEnum.PROCESSED],
+    );
+
+    return result ?? {};
+  }
+
+  // Agrège directement en base la structure { [nom]: { [status]: count } }
+  // via jsonb_object_agg, ce qui évite tout post-traitement en JS.
+  private async getStatsGroupedByRelation(
+    relationTable: 'sources' | 'clients',
+    foreignKey: 'source_id' | 'processed_by',
+  ): Promise<Record<string, Record<ReportStatusEnum, number>>> {
+    const { tableName, discriminatorColumn, discriminatorValue } =
+      this.repository.metadata;
+
+    const [{ result }] = await this.repository.manager.query<
+      [{ result: Record<string, Record<ReportStatusEnum, number>> | null }]
+    >(
+      `
+        SELECT jsonb_object_agg(name, statuses) AS result
+        FROM (
+          SELECT relation.nom AS name,
+                 jsonb_object_agg(counts.status, counts.count) AS statuses
+          FROM (
+            SELECT report.${foreignKey} AS relation_id,
+                   report.status AS status,
+                   COUNT(report.id) AS count
+            FROM ${tableName} report
+            WHERE report.${discriminatorColumn.databaseName} = $1
+            GROUP BY report.${foreignKey}, report.status
+          ) counts
+          JOIN ${relationTable} relation ON relation.id = counts.relation_id
+          GROUP BY relation.nom
+        ) grouped
+      `,
+      [discriminatorValue],
+    );
+
+    return result ?? {};
   }
 
   async findOneOrFail(
