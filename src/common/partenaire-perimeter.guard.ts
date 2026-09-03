@@ -40,7 +40,8 @@ export class PartenairePerimeterGuard implements CanActivate {
 
     let communes: string[];
     try {
-      communes = await this.balAdminService.getPartenaireCommunes(partenaireId);
+      communes =
+        await this.balAdminService.getPartenairePerimeters(partenaireId);
     } catch (error) {
       // Fail closed : en cas d'erreur BAL-admin on refuse l'accès.
       this.logger.error(

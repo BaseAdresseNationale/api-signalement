@@ -7,8 +7,7 @@ export class CreateClientDTO {
   @IsNotEmpty()
   nom: string;
 
-  @ApiProperty({ required: true, nullable: false })
+  @ApiProperty({ required: false, nullable: true })
   @IsString()
-  @IsNotEmpty()
-  partenaireId: string;
+  partenaireId?: string;
 }

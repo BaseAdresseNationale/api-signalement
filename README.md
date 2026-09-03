@@ -100,3 +100,5 @@ Elles peuvent être définies classiquement ou en créant un fichier `.env` sur 
 | `DATAGOUV_API_KEY`            | Clef de l'API DataGouv                                                                                      |
 | `DATAGOUV_DATASET_ID`         | Id du dataset sur DataGouv                                                                                  |
 | `DATAGOUV_RESOURCE_ID`        | Id de la ressource sur DataGouv                                                                             |
+| `BAL_ADMIN_API_URL`           | URL de l'API BAL-Admin                                                                                      |
+| `BAL_ADMIN_API_TOKEN`         | Token de l'API BAL-Admin                                                                                    |
