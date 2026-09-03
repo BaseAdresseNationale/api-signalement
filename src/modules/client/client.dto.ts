@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateClientDTO {
   @ApiProperty({ required: true, nullable: false })
@@ -8,6 +8,7 @@ export class CreateClientDTO {
   nom: string;
 
   @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
   @IsString()
   partenaireId?: string;
 }
