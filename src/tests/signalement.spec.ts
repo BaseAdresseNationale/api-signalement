@@ -5,7 +5,7 @@ import {
   Module,
   ValidationPipe,
 } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { SourceTypeEnum } from '../modules/source/source.types';
 import {
   SignalementStatusEnum,
@@ -82,6 +82,40 @@ const getSerializedSignalement = (
         }),
     ...(withAuthor ? { author } : {}),
   };
+};
+
+const buildPerimeterTestSignalement = (
+  codeCommune: string,
+  source: Source,
+): Signalement => {
+  const entity = new Signalement({
+    codeCommune,
+    author: { email: 'test@test.com' },
+    type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+    existingLocation: {
+      type: ExistingLocationTypeEnum.NUMERO,
+      numero: 2,
+      suffixe: 'bis',
+      position: {
+        type: PositionTypeEnum.BATIMENT,
+        point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+      },
+      toponyme: { type: ExistingLocationTypeEnum.VOIE, nom: 'Rue de la Paix' },
+    },
+    changesRequested: {
+      numero: 3,
+      suffixe: 'ter',
+      positions: [
+        {
+          type: PositionTypeEnum.BATIMENT,
+          point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+        },
+      ],
+      parcelles: ['37003000BA0744', '37003000BA0743'],
+    } as NumeroChangesRequestedDTO,
+  });
+  entity.source = source;
+  return entity;
 };
 
 const mockAPIDepotService = {
@@ -1015,6 +1049,96 @@ describe('Signalement module', () => {
         .get(`/signalements/${signalementId}`)
         .expect(404);
     });
+
+    it('should let a partner access a signalement inside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
+        'partenaire-a',
+      );
+    });
+
+    it('should forbid a partner from accessing a signalement outside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['75056']);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+    });
+
+    it('should not restrict a client without partenaireId', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Client global' }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(
+        mockBalAdminService.getPartenairePerimeters,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /signalements', () => {
@@ -1892,180 +2016,99 @@ describe('Signalement module', () => {
         to: 'test@test.com',
       });
     });
-  });
 
-  describe('Partner perimeter security (guard)', () => {
-    const buildSignalement = (codeCommune: string, source: Source) => {
-      const entity = new Signalement({
-        codeCommune,
-        author: { email: 'test@test.com' },
-        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
-        existingLocation: {
-          type: ExistingLocationTypeEnum.NUMERO,
-          numero: 2,
-          suffixe: 'bis',
-          position: {
-            type: PositionTypeEnum.BATIMENT,
-            point: { type: 'Point', coordinates: [0.982904, 47.410998] },
-          },
-          toponyme: {
-            type: ExistingLocationTypeEnum.VOIE,
-            nom: 'Rue de la Paix',
-          },
-        },
-        changesRequested: {
-          numero: 3,
-          suffixe: 'ter',
-          positions: [
-            {
-              type: PositionTypeEnum.BATIMENT,
-              point: { type: 'Point', coordinates: [0.982904, 47.410998] },
-            },
-          ],
-          parcelles: ['37003000BA0744', '37003000BA0743'],
-        } as NumeroChangesRequestedDTO,
-      });
-      entity.source = source;
-      return entity;
-    };
+    it('should let a partner update a signalement inside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
 
-    const createSource = () =>
-      createRecording(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
         sourceRepository,
-        new Source({ nom: 'Pifomètre', type: SourceTypeEnum.PUBLIC }),
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
       );
 
-    describe('GET /signalements/:idSignalement', () => {
-      it('should let a partner access a signalement inside its perimeter', async () => {
-        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
 
-        await request(app.getHttpServer())
-          .get('/signalements/' + signalement.id)
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(200);
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
 
-        expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
-          'partenaire-a',
-        );
-      });
-
-      it('should forbid a partner from accessing a signalement outside its perimeter', async () => {
-        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['75056']);
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
-
-        await request(app.getHttpServer())
-          .get('/signalements/' + signalement.id)
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(403);
-      });
-
-      it('should not restrict a client without partenaireId', async () => {
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Client global' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
-
-        await request(app.getHttpServer())
-          .get('/signalements/' + signalement.id)
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(200);
-
-        expect(
-          mockBalAdminService.getPartenairePerimeters,
-        ).not.toHaveBeenCalled();
-      });
+      await request(app.getHttpServer())
+        .put('/signalements/' + signalement.id)
+        .send({ status: SignalementStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
     });
 
-    describe('PUT /signalements/:idSignalement', () => {
-      it('should let a partner update a signalement inside its perimeter', async () => {
-        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
+    it('should forbid a partner from updating a signalement outside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue([]);
 
-        const updateSignalementDTO: UpdateSignalementDTO = {
-          status: SignalementStatusEnum.PROCESSED,
-        };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-        await request(app.getHttpServer())
-          .put('/signalements/' + signalement.id)
-          .send(updateSignalementDTO)
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(200);
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .put('/signalements/' + signalement.id)
+        .send({ status: SignalementStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+
+      const untouched = await signalementRepository.findOneBy({
+        id: signalement.id,
       });
+      expect(untouched.status).toEqual(SignalementStatusEnum.PENDING);
+    });
 
-      it('should forbid a partner from updating a signalement outside its perimeter', async () => {
-        mockBalAdminService.getPartenairePerimeters.mockResolvedValue([]);
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
+    it('should forbid access when the BAL-admin lookup fails (fail closed)', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockRejectedValue(
+        new Error('BAL-admin unreachable'),
+      );
 
-        await request(app.getHttpServer())
-          .put('/signalements/' + signalement.id)
-          .send({ status: SignalementStatusEnum.PROCESSED })
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(403);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
 
-        const untouched = await signalementRepository.findOneBy({
-          id: signalement.id,
-        });
-        expect(untouched.status).toEqual(SignalementStatusEnum.PENDING);
-      });
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
 
-      it('should forbid access when the BAL-admin lookup fails (fail closed)', async () => {
-        mockBalAdminService.getPartenairePerimeters.mockRejectedValue(
-          new Error('BAL-admin unreachable'),
-        );
-        const source = await createSource();
-        const { token: clientToken } = await createRecording(
-          clientRepository,
-          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
-        );
-        const signalement = await createRecording(
-          signalementRepository,
-          buildSignalement('37001', source),
-        );
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
 
-        await request(app.getHttpServer())
-          .put('/signalements/' + signalement.id)
-          .send({ status: SignalementStatusEnum.PROCESSED })
-          .set('Authorization', `Bearer ${clientToken}`)
-          .expect(403);
-      });
+      await request(app.getHttpServer())
+        .put('/signalements/' + signalement.id)
+        .send({ status: SignalementStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
     });
   });
 });

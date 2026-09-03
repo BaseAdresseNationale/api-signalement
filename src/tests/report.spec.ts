@@ -6,7 +6,7 @@ import {
   Module,
   ValidationPipe,
 } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { SourceTypeEnum } from '../modules/source/source.types';
 import { AlertTypeEnum } from '../modules/alert/alert.types';
 import { SignalementTypeEnum } from '../modules/signalement/signalement.types';
