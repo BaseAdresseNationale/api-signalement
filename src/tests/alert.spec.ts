@@ -5,7 +5,7 @@ import {
   Module,
   ValidationPipe,
 } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { SourceTypeEnum } from '../modules/source/source.types';
 import { AlertStatusEnum, AlertTypeEnum } from '../modules/alert/alert.types';
 import { CreateAlertDTO, UpdateAlertDTO } from '../modules/alert/alert.dto';
@@ -28,6 +28,7 @@ import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
 import { Setting } from '../modules/setting/setting.entity';
 import { ApiDepotService } from '../modules/api-depot/api-depot.service';
+import { BalAdminService } from '../modules/bal-admin/bal-admin.service';
 import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 
 const getSerializedAlert = (
@@ -91,6 +92,10 @@ const mockMailerService = {
   sendMail: jest.fn(),
 };
 
+const mockBalAdminService = {
+  getPartenairePerimeters: jest.fn(),
+};
+
 @Global()
 @Module({
   providers: [
@@ -145,6 +150,8 @@ describe('Alert module', () => {
     })
       .overrideModule(ApiDepotModule)
       .useModule(MockedApiDepotModule)
+      .overrideProvider(BalAdminService)
+      .useValue(mockBalAdminService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -174,6 +181,7 @@ describe('Alert module', () => {
     await clientRepository.delete({});
     await settingRepository.delete({});
     mockMailerService.sendMail.mockClear();
+    mockBalAdminService.getPartenairePerimeters.mockReset();
   });
 
   // Helper to create an alert entity attached to a source
@@ -494,6 +502,96 @@ describe('Alert module', () => {
       const alertId = v4();
 
       await request(app.getHttpServer()).get(`/alerts/${alertId}`).expect(404);
+    });
+
+    it('should let a partner access an alert inside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37003']);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .get('/alerts/' + alert.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
+        'partenaire-a',
+      );
+    });
+
+    it('should forbid a partner from accessing an alert outside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['75056']);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .get('/alerts/' + alert.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+    });
+
+    it('should not restrict a client without partenaireId', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Client global' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .get('/alerts/' + alert.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(
+        mockBalAdminService.getPartenairePerimeters,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -957,6 +1055,98 @@ describe('Alert module', () => {
         .send(updateAlertDTO)
         .set('Authorization', `Bearer ${clientToken}`)
         .expect(400);
+    });
+
+    it('should let a partner update an alert inside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37003']);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .put('/alerts/' + alert.id)
+        .send({ status: AlertStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+    });
+
+    it('should forbid a partner from updating an alert outside its perimeter', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue([]);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .put('/alerts/' + alert.id)
+        .send({ status: AlertStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+
+      const untouched = await alertRepository.findOneBy({ id: alert.id });
+      expect(untouched.status).toEqual(AlertStatusEnum.PENDING);
+    });
+
+    it('should forbid access when the BAL-admin lookup fails (fail closed)', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockRejectedValue(
+        new Error('BAL-admin unreachable'),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token: sourceToken, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+      );
+
+      const alert = await createRecording(
+        alertRepository,
+        createAlertEntity(source, { comment: 'Adresse manquante' }),
+      );
+
+      await request(app.getHttpServer())
+        .put('/alerts/' + alert.id)
+        .send({ status: AlertStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
     });
   });
 });

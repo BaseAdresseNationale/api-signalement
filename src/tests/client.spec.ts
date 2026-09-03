@@ -4,7 +4,7 @@ import {
 } from '@testcontainers/postgresql';
 import { Client } from 'pg';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { CreateClientDTO } from '../modules/client/client.dto';
 import { ClientModule } from '../modules/client/client.module';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -74,7 +74,7 @@ describe('Client module', () => {
         .expect(403);
     });
 
-    it('should create a new client', async () => {
+    it('should create a new client without partenaire ID', async () => {
       const createClientDTO: CreateClientDTO = {
         nom: 'Mes adresses',
       };
@@ -88,6 +88,30 @@ describe('Client module', () => {
       expect(response.body).toEqual({
         id: expect.any(String),
         nom: 'Mes adresses',
+        partenaireId: null,
+        token: expect.any(String),
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
+    });
+
+    it('should create a new client with partenaire ID', async () => {
+      const createClientDTO: CreateClientDTO = {
+        nom: 'Mes adresses',
+        partenaireId: 'partenaire-123',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/clients')
+        .send(createClientDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        id: expect.any(String),
+        nom: 'Mes adresses',
+        partenaireId: 'partenaire-123',
         token: expect.any(String),
         deletedAt: null,
         createdAt: expect.any(String),

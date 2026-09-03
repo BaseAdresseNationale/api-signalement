@@ -5,7 +5,7 @@ import {
   Module,
   ValidationPipe,
 } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { MailerService } from '@nestjs-modules/mailer';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import {

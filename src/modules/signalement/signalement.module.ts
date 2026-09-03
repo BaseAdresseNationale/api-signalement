@@ -13,6 +13,9 @@ import { ClientMiddleware } from '../client/client.middleware';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Signalement } from './signalement.entity';
 import { SettingModule } from '../setting/setting.module';
+import { ReportModule } from '../report/report.module';
+import { BalAdminModule } from '../bal-admin/bal-admin.module';
+import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guard';
 
 @Module({
   imports: [
@@ -20,9 +23,11 @@ import { SettingModule } from '../setting/setting.module';
     forwardRef(() => SourceModule),
     forwardRef(() => ClientModule),
     forwardRef(() => SettingModule),
+    ReportModule,
+    BalAdminModule,
   ],
   controllers: [SignalementController],
-  providers: [SignalementService],
+  providers: [SignalementService, PartenairePerimeterGuard],
   exports: [SignalementService],
 })
 export class SignalementModule {

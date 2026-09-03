@@ -13,6 +13,9 @@ import { SettingModule } from '../setting/setting.module';
 import { Alert } from './alert.entity';
 import { AlertController } from './alert.controller';
 import { AlertService } from './alert.service';
+import { ReportModule } from '../report/report.module';
+import { BalAdminModule } from '../bal-admin/bal-admin.module';
+import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guard';
 
 @Module({
   imports: [
@@ -20,9 +23,11 @@ import { AlertService } from './alert.service';
     forwardRef(() => SourceModule),
     forwardRef(() => ClientModule),
     forwardRef(() => SettingModule),
+    ReportModule,
+    BalAdminModule,
   ],
   controllers: [AlertController],
-  providers: [AlertService],
+  providers: [AlertService, PartenairePerimeterGuard],
   exports: [AlertService],
 })
 export class AlertModule {
