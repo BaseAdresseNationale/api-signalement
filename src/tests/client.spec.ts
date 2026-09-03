@@ -4,7 +4,7 @@ import {
 } from '@testcontainers/postgresql';
 import { Client } from 'pg';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request = require('supertest');
 import { CreateClientDTO } from '../modules/client/client.dto';
 import { ClientModule } from '../modules/client/client.module';
 import { Test, TestingModule } from '@nestjs/testing';
