@@ -43,6 +43,7 @@ import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
 import { Setting } from '../modules/setting/setting.entity';
 import { ApiDepotService } from '../modules/api-depot/api-depot.service';
+import { BalAdminService } from '../modules/bal-admin/bal-admin.service';
 import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 
 const getSerializedSignalement = (
@@ -106,6 +107,10 @@ const mockMailerService = {
   sendMail: jest.fn(),
 };
 
+const mockBalAdminService = {
+  getPartenairePerimeters: jest.fn(),
+};
+
 @Global()
 @Module({
   providers: [
@@ -160,6 +165,8 @@ describe('Signalement module', () => {
     })
       .overrideModule(ApiDepotModule)
       .useModule(MockedApiDepotModule)
+      .overrideProvider(BalAdminService)
+      .useValue(mockBalAdminService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -189,6 +196,7 @@ describe('Signalement module', () => {
     await clientRepository.delete({});
     await settingRepository.delete({});
     mockMailerService.sendMail.mockClear();
+    mockBalAdminService.getPartenairePerimeters.mockReset();
   });
 
   describe('GET /signalements', () => {
@@ -1882,6 +1890,181 @@ describe('Signalement module', () => {
         subject: "Votre signalement n'a pas été pris en compte",
         template: 'ignored',
         to: 'test@test.com',
+      });
+    });
+  });
+
+  describe('Partner perimeter security (guard)', () => {
+    const buildSignalement = (codeCommune: string, source: Source) => {
+      const entity = new Signalement({
+        codeCommune,
+        author: { email: 'test@test.com' },
+        type: SignalementTypeEnum.LOCATION_TO_UPDATE,
+        existingLocation: {
+          type: ExistingLocationTypeEnum.NUMERO,
+          numero: 2,
+          suffixe: 'bis',
+          position: {
+            type: PositionTypeEnum.BATIMENT,
+            point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+          },
+          toponyme: {
+            type: ExistingLocationTypeEnum.VOIE,
+            nom: 'Rue de la Paix',
+          },
+        },
+        changesRequested: {
+          numero: 3,
+          suffixe: 'ter',
+          positions: [
+            {
+              type: PositionTypeEnum.BATIMENT,
+              point: { type: 'Point', coordinates: [0.982904, 47.410998] },
+            },
+          ],
+          parcelles: ['37003000BA0744', '37003000BA0743'],
+        } as NumeroChangesRequestedDTO,
+      });
+      entity.source = source;
+      return entity;
+    };
+
+    const createSource = () =>
+      createRecording(
+        sourceRepository,
+        new Source({ nom: 'Pifomètre', type: SourceTypeEnum.PUBLIC }),
+      );
+
+    describe('GET /signalements/:idSignalement', () => {
+      it('should let a partner access a signalement inside its perimeter', async () => {
+        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        await request(app.getHttpServer())
+          .get('/signalements/' + signalement.id)
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(200);
+
+        expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
+          'partenaire-a',
+        );
+      });
+
+      it('should forbid a partner from accessing a signalement outside its perimeter', async () => {
+        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['75056']);
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        await request(app.getHttpServer())
+          .get('/signalements/' + signalement.id)
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(403);
+      });
+
+      it('should not restrict a client without partenaireId', async () => {
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Client global' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        await request(app.getHttpServer())
+          .get('/signalements/' + signalement.id)
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(200);
+
+        expect(
+          mockBalAdminService.getPartenairePerimeters,
+        ).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('PUT /signalements/:idSignalement', () => {
+      it('should let a partner update a signalement inside its perimeter', async () => {
+        mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        const updateSignalementDTO: UpdateSignalementDTO = {
+          status: SignalementStatusEnum.PROCESSED,
+        };
+
+        await request(app.getHttpServer())
+          .put('/signalements/' + signalement.id)
+          .send(updateSignalementDTO)
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(200);
+      });
+
+      it('should forbid a partner from updating a signalement outside its perimeter', async () => {
+        mockBalAdminService.getPartenairePerimeters.mockResolvedValue([]);
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        await request(app.getHttpServer())
+          .put('/signalements/' + signalement.id)
+          .send({ status: SignalementStatusEnum.PROCESSED })
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(403);
+
+        const untouched = await signalementRepository.findOneBy({
+          id: signalement.id,
+        });
+        expect(untouched.status).toEqual(SignalementStatusEnum.PENDING);
+      });
+
+      it('should forbid access when the BAL-admin lookup fails (fail closed)', async () => {
+        mockBalAdminService.getPartenairePerimeters.mockRejectedValue(
+          new Error('BAL-admin unreachable'),
+        );
+        const source = await createSource();
+        const { token: clientToken } = await createRecording(
+          clientRepository,
+          new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        );
+        const signalement = await createRecording(
+          signalementRepository,
+          buildSignalement('37001', source),
+        );
+
+        await request(app.getHttpServer())
+          .put('/signalements/' + signalement.id)
+          .send({ status: SignalementStatusEnum.PROCESSED })
+          .set('Authorization', `Bearer ${clientToken}`)
+          .expect(403);
       });
     });
   });

@@ -17,7 +17,7 @@ export class BalAdminService {
   // Retourne la liste des codes commune couverts par le périmètre du partenaire.
   // Résultat mis en cache 1h pour éviter de re-requêter BAL-admin lors d'un
   // traitement de signalements en masse.
-  async getPartenaireCommunes(partenaireId: string): Promise<string[]> {
+  async getPartenairePerimeters(partenaireId: string): Promise<string[]> {
     const cached = this.perimeterCache.get(partenaireId);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.communes;
@@ -27,7 +27,7 @@ export class BalAdminService {
     const apiToken = this.configService.get<string>('BAL_ADMIN_API_TOKEN');
 
     const { data } = await axios.get<string[]>(
-      `${apiUrl}/api/partenaires-de-la-charte/${partenaireId}/perimeters`,
+      `${apiUrl}/partenaires-de-la-charte/${partenaireId}/perimeters`,
       {
         headers: { Authorization: `Bearer ${apiToken}` },
       },
