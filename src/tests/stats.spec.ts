@@ -220,6 +220,7 @@ describe('Stats module', () => {
           processedBy: {},
           byMonth: [],
         },
+        enabledCommuneCount: 0,
       });
     });
 

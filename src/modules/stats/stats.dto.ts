@@ -41,4 +41,7 @@ export class CombinedStatsDTO {
 
   @ApiProperty({ required: true, nullable: false, type: Object })
   signalementStats: StatsDTO;
+
+  @ApiProperty({ required: true, nullable: false, type: Number })
+  enabledCommuneCount: number;
 }

@@ -68,4 +68,14 @@ export class CommuneSettingsCacheService implements OnModuleInit {
   getCachedSettings(): CommuneSettingsMap | null {
     return this.cachedSettings;
   }
+
+  getEnabledCommuneCount(): number {
+    if (!this.cachedSettings) {
+      return 0;
+    }
+
+    return Object.values(this.cachedSettings).filter(
+      (status) => !status.disabled,
+    ).length;
+  }
 }
