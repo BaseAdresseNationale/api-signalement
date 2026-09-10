@@ -6,6 +6,7 @@ import { Client } from 'pg';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request = require('supertest');
 import { CreateClientDTO } from '../modules/client/client.dto';
+import { ClientPublicationType } from '../modules/client/client.types';
 import { ClientModule } from '../modules/client/client.module';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -89,6 +90,8 @@ describe('Client module', () => {
         id: expect.any(String),
         nom: 'Mes adresses',
         partenaireId: null,
+        publicationType: null,
+        publicationId: null,
         token: expect.any(String),
         deletedAt: null,
         createdAt: expect.any(String),
@@ -112,6 +115,35 @@ describe('Client module', () => {
         id: expect.any(String),
         nom: 'Mes adresses',
         partenaireId: 'partenaire-123',
+        publicationType: null,
+        publicationId: null,
+        token: expect.any(String),
+        deletedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
+    });
+
+    it('should create a new client with publication info', async () => {
+      const createClientDTO: CreateClientDTO = {
+        nom: 'Mes adresses',
+        partenaireId: 'partenaire-123',
+        publicationType: ClientPublicationType.API_DEPOT,
+        publicationId: 'api-depot-client-123',
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/clients')
+        .send(createClientDTO)
+        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        id: expect.any(String),
+        nom: 'Mes adresses',
+        partenaireId: 'partenaire-123',
+        publicationType: ClientPublicationType.API_DEPOT,
+        publicationId: 'api-depot-client-123',
         token: expect.any(String),
         deletedAt: null,
         createdAt: expect.any(String),

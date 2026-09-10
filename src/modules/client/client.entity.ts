@@ -4,6 +4,7 @@ import { BaseEntity } from '../../common/base.entity';
 import { generateToken } from '../../utils/token.utils';
 import { ApiProperty } from '@nestjs/swagger';
 import { Report } from '../report/report.entity';
+import { ClientPublicationType } from './client.types';
 
 @Entity('clients')
 export class Client extends BaseEntity {
@@ -17,6 +18,24 @@ export class Client extends BaseEntity {
   @Column('text', { name: 'partenaire_id', nullable: true })
   @ApiProperty({ required: false, nullable: true, type: String })
   partenaireId?: string;
+
+  // Système via lequel ce partenaire publie ses adresses (API dépôt ou moissonneur)
+  @Column('enum', {
+    name: 'publication_type',
+    enum: ClientPublicationType,
+    nullable: true,
+  })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    enum: ClientPublicationType,
+  })
+  publicationType?: ClientPublicationType;
+
+  // Identifiant du partenaire dans le système de publication (id client API dépôt ou id source moissonneur)
+  @Column('text', { name: 'publication_id', nullable: true })
+  @ApiProperty({ required: false, nullable: true, type: String })
+  publicationId?: string;
 
   @OneToMany(() => Report, (report) => report.processedBy, {
     persistence: false,
@@ -32,9 +51,11 @@ export class Client extends BaseEntity {
   constructor(createInput: CreateClientDTO) {
     super();
     if (createInput) {
-      const { nom, partenaireId } = createInput;
+      const { nom, partenaireId, publicationType, publicationId } = createInput;
       this.nom = nom;
       this.partenaireId = partenaireId;
+      this.publicationType = publicationType;
+      this.publicationId = publicationId;
       this.token = generateToken();
     }
   }

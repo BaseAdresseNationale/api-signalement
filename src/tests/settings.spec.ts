@@ -9,6 +9,8 @@ import {
 } from '@testcontainers/postgresql';
 import { Client as PGClient } from 'pg';
 import { Setting } from '../modules/setting/setting.entity';
+import { Client } from '../modules/client/client.entity';
+import { ClientPublicationType } from '../modules/client/client.types';
 import { createRecording } from '../utils/test.utils';
 import { SourceTypeEnum } from '../modules/source/source.types';
 import { Repository } from 'typeorm';
@@ -16,10 +18,7 @@ import { ApiDepotService } from '../modules/api-depot/api-depot.service';
 import { ApiDepotModule } from '../modules/api-depot/api-depot.module';
 import { entities } from '../app.entities';
 import { SettingModule } from '../modules/setting/setting.module';
-import {
-  EnabledListKeys,
-  SignalementSubmissionMode,
-} from '../modules/setting/setting.type';
+import { SignalementSubmissionMode } from '../modules/setting/setting.type';
 import { Logger } from '@nestjs/common';
 
 Logger.overrideLogger(false);
@@ -53,6 +52,7 @@ describe('Setting module', () => {
   let postgresClient: PGClient;
   let sourceRepository: Repository<Source>;
   let settingRepository: Repository<Setting>;
+  let clientRepository: Repository<Client>;
 
   beforeAll(async () => {
     postgresContainer = await new PostgreSqlContainer(
@@ -93,6 +93,7 @@ describe('Setting module', () => {
 
     sourceRepository = app.get(getRepositoryToken(Source));
     settingRepository = app.get(getRepositoryToken(Setting));
+    clientRepository = app.get(getRepositoryToken(Client));
   });
 
   afterAll(async () => {
@@ -104,6 +105,7 @@ describe('Setting module', () => {
   afterEach(async () => {
     await sourceRepository.delete({});
     await settingRepository.delete({});
+    await clientRepository.delete({});
   });
 
   describe('GET settings/commune-status/:codeCommune', () => {
@@ -217,13 +219,6 @@ describe('Setting module', () => {
       });
 
       const source = await createRecording(sourceRepository, testSource);
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED,
-          content: [],
-        }),
-      );
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -244,22 +239,13 @@ describe('Setting module', () => {
 
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED,
-          content: [],
+        clientRepository,
+        new Client({
+          nom: 'Partenaire moissonneur',
+          publicationType: ClientPublicationType.MOISSONNEUR,
+          publicationId: testObjectId,
         }),
       );
-
-      await request(app.getHttpServer())
-        .put(
-          `/settings/enabled-list/${EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED}`,
-        )
-        .send({
-          id: testObjectId,
-        })
-        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
-        .expect(200);
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -279,13 +265,6 @@ describe('Setting module', () => {
       });
 
       const source = await createRecording(sourceRepository, testSource);
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
-          content: [],
-        }),
-      );
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -305,22 +284,13 @@ describe('Setting module', () => {
       });
       const source = await createRecording(sourceRepository, testSource);
       await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
-          content: [],
+        clientRepository,
+        new Client({
+          nom: 'Partenaire api-depot',
+          publicationType: ClientPublicationType.API_DEPOT,
+          publicationId: testObjectId,
         }),
       );
-
-      await request(app.getHttpServer())
-        .put(
-          `/settings/enabled-list/${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}`,
-        )
-        .send({
-          id: testObjectId,
-        })
-        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
-        .expect(200);
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)
@@ -339,13 +309,6 @@ describe('Setting module', () => {
         },
       });
       const source = await createRecording(sourceRepository, testSource);
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
-          content: [],
-        }),
-      );
 
       await request(app.getHttpServer())
         .post(`/settings/commune-settings/37003`)
@@ -373,13 +336,6 @@ describe('Setting module', () => {
         },
       });
       const source = await createRecording(sourceRepository, testSource);
-      await createRecording(
-        settingRepository,
-        new Setting({
-          name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED,
-          content: [],
-        }),
-      );
 
       await request(app.getHttpServer())
         .post(`/settings/commune-settings/37003`)
@@ -390,15 +346,14 @@ describe('Setting module', () => {
         .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
         .expect(200);
 
-      await request(app.getHttpServer())
-        .put(
-          `/settings/enabled-list/${EnabledListKeys.API_DEPOT_CLIENTS_ENABLED}`,
-        )
-        .send({
-          id: testObjectId,
-        })
-        .set('Authorization', `Bearer ${process.env.ADMIN_TOKEN}`)
-        .expect(200);
+      await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Partenaire api-depot',
+          publicationType: ClientPublicationType.API_DEPOT,
+          publicationId: testObjectId,
+        }),
+      );
 
       const response = await request(app.getHttpServer())
         .get(`/settings/commune-status/37003?sourceId=${source.id}`)

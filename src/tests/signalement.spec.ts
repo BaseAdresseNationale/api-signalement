@@ -38,6 +38,7 @@ import { entities } from '../app.entities';
 import { Signalement } from '../modules/signalement/signalement.entity';
 import { Source } from '../modules/source/source.entity';
 import { Client } from '../modules/client/client.entity';
+import { ClientPublicationType } from '../modules/client/client.types';
 import { createRecording } from '../utils/test.utils';
 import { v4 } from 'uuid';
 import { getCommune } from '../utils/cog.utils';
@@ -1052,6 +1053,82 @@ describe('Signalement module', () => {
 
     it('should let a partner access a signalement inside its perimeter', async () => {
       mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+      mockAPIDepotService.getCurrentRevision.mockResolvedValueOnce({
+        client: { id: 'api-depot-client-a' },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Partenaire A',
+          partenaireId: 'partenaire-a',
+          publicationType: ClientPublicationType.API_DEPOT,
+          publicationId: 'api-depot-client-a',
+        }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
+        'partenaire-a',
+      );
+    });
+
+    it('should forbid a partner from accessing a signalement it does not currently publish', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+      mockAPIDepotService.getCurrentRevision.mockResolvedValueOnce({
+        client: { id: 'someone-else' },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Partenaire A',
+          partenaireId: 'partenaire-a',
+          publicationType: ClientPublicationType.API_DEPOT,
+          publicationId: 'api-depot-client-a',
+        }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .get('/signalements/' + signalement.id)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+    });
+
+    it('should forbid a partner without publication info from accessing a signalement', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...source } = await createRecording(
@@ -1075,11 +1152,7 @@ describe('Signalement module', () => {
       await request(app.getHttpServer())
         .get('/signalements/' + signalement.id)
         .set('Authorization', `Bearer ${clientToken}`)
-        .expect(200);
-
-      expect(mockBalAdminService.getPartenairePerimeters).toHaveBeenCalledWith(
-        'partenaire-a',
-      );
+        .expect(403);
     });
 
     it('should forbid a partner from accessing a signalement outside its perimeter', async () => {
@@ -2019,6 +2092,9 @@ describe('Signalement module', () => {
 
     it('should let a partner update a signalement inside its perimeter', async () => {
       mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+      mockAPIDepotService.getCurrentRevision.mockResolvedValueOnce({
+        context: { extras: { sourceId: 'moissonneur-source-a' } },
+      });
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token, defaultAuthor, ...source } = await createRecording(
@@ -2031,7 +2107,12 @@ describe('Signalement module', () => {
 
       const { token: clientToken } = await createRecording(
         clientRepository,
-        new Client({ nom: 'Partenaire A', partenaireId: 'partenaire-a' }),
+        new Client({
+          nom: 'Partenaire A',
+          partenaireId: 'partenaire-a',
+          publicationType: ClientPublicationType.MOISSONNEUR,
+          publicationId: 'moissonneur-source-a',
+        }),
       );
 
       const signalement = await createRecording(
@@ -2044,6 +2125,48 @@ describe('Signalement module', () => {
         .send({ status: SignalementStatusEnum.PROCESSED })
         .set('Authorization', `Bearer ${clientToken}`)
         .expect(200);
+    });
+
+    it('should forbid a partner from updating a signalement it does not currently publish', async () => {
+      mockBalAdminService.getPartenairePerimeters.mockResolvedValue(['37001']);
+      mockAPIDepotService.getCurrentRevision.mockResolvedValueOnce({
+        context: { extras: { sourceId: 'someone-elses-source' } },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'Pifomètre',
+          type: SourceTypeEnum.PUBLIC,
+        }),
+      );
+
+      const { token: clientToken } = await createRecording(
+        clientRepository,
+        new Client({
+          nom: 'Partenaire A',
+          partenaireId: 'partenaire-a',
+          publicationType: ClientPublicationType.MOISSONNEUR,
+          publicationId: 'moissonneur-source-a',
+        }),
+      );
+
+      const signalement = await createRecording(
+        signalementRepository,
+        buildPerimeterTestSignalement('37001', source),
+      );
+
+      await request(app.getHttpServer())
+        .put('/signalements/' + signalement.id)
+        .send({ status: SignalementStatusEnum.PROCESSED })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+
+      const untouched = await signalementRepository.findOneBy({
+        id: signalement.id,
+      });
+      expect(untouched.status).toEqual(SignalementStatusEnum.PENDING);
     });
 
     it('should forbid a partner from updating a signalement outside its perimeter', async () => {
