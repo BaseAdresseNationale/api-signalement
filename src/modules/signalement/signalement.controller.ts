@@ -34,6 +34,7 @@ import {
 } from './signalement.types';
 import { SourceGuard } from '../source/source.guard';
 import { ClientGuard } from '../client/client.guard';
+import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guard';
 import { Signalement } from './signalement.entity';
 import { In } from 'typeorm';
 import { Client } from '../client/client.entity';
@@ -167,6 +168,7 @@ export class SignalementController {
     type: Signalement,
   })
   @ApiBearerAuth('client-token')
+  @UseGuards(PartenairePerimeterGuard)
   async getSignalementById(
     @Req() req: Request & { registeredClient: Client },
     @Res() res: Response,
@@ -189,7 +191,7 @@ export class SignalementController {
   @ApiBody({ type: UpdateSignalementDTO, required: true })
   @ApiResponse({ status: HttpStatus.OK, type: Signalement })
   @ApiBearerAuth('client-token')
-  @UseGuards(ClientGuard)
+  @UseGuards(ClientGuard, PartenairePerimeterGuard)
   async updateSignalement(
     @Req() req: Request & { registeredClient: { id: string } },
     @Body() updateSignalementDTO: UpdateSignalementDTO,

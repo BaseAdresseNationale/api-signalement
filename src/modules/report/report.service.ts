@@ -13,6 +13,15 @@ export class ReportService {
     private readonly reportRepository: Repository<Report>,
   ) {}
 
+  // Retourne le code commune d'un report (signalement ou alert) par son id.
+  // NB: pas de `select` restrictif ici — sur le repo base STI cela omettrait le
+  // discriminateur et casserait les listeners @AfterLoad des entités enfant.
+  async findCodeCommune(id: string): Promise<string | null> {
+    const report = await this.reportRepository.findOne({ where: { id } });
+
+    return report?.codeCommune ?? null;
+  }
+
   async findMany(
     filters: {
       codeCommune?: any;
