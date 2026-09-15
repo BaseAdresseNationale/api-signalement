@@ -5,6 +5,7 @@ import { SettingService } from './setting.service';
 import { SettingController } from './setting.controller';
 import { ApiDepotModule } from '../api-depot/api-depot.module';
 import { SourceModule } from '../source/source.module';
+import { ClientModule } from '../client/client.module';
 import { CommuneSettingsCacheService } from './commune-settings-cache.service';
 
 @Module({
@@ -12,6 +13,7 @@ import { CommuneSettingsCacheService } from './commune-settings-cache.service';
     forwardRef(() => TypeOrmModule.forFeature([Setting])),
     forwardRef(() => ApiDepotModule),
     forwardRef(() => SourceModule),
+    forwardRef(() => ClientModule),
   ],
   controllers: [SettingController],
   providers: [SettingService, CommuneSettingsCacheService],
