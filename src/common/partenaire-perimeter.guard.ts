@@ -53,7 +53,7 @@ export class PartenairePerimeterGuard implements CanActivate {
 
     if (!communes.includes(codeCommune)) {
       throw new ForbiddenException(
-        'This report is outside your partner geographic perimeter',
+        'This report is outside your geographic perimeter',
       );
     }
 
