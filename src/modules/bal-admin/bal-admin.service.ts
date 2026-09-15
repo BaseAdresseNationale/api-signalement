@@ -24,13 +24,9 @@ export class BalAdminService {
     }
 
     const apiUrl = this.configService.get<string>('BAL_ADMIN_API_URL');
-    const apiToken = this.configService.get<string>('BAL_ADMIN_API_TOKEN');
 
     const { data } = await axios.get<string[]>(
       `${apiUrl}/partenaires-de-la-charte/${partenaireId}/perimeters`,
-      {
-        headers: { Authorization: `Bearer ${apiToken}` },
-      },
     );
 
     const communes = data ?? [];
