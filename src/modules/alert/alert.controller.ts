@@ -31,6 +31,7 @@ import { In } from 'typeorm';
 import { Client } from '../client/client.entity';
 import { TrimPipe } from '../../common/trim.pipe';
 import { Alert } from './alert.entity';
+import { buildCodeCommuneFilter } from '../../utils/cog.utils';
 import {
   CreateAlertDTO,
   PaginatedAlertsDTO,
@@ -50,6 +51,12 @@ export class AlertController {
   })
   @ApiQuery({
     name: 'codeCommunes',
+    required: false,
+    type: String,
+    isArray: true,
+  })
+  @ApiQuery({
+    name: 'codeDepartements',
     required: false,
     type: String,
     isArray: true,
@@ -79,6 +86,7 @@ export class AlertController {
     @Req() req: Request,
     @Res() res: Response,
     @Query('codeCommunes') codeCommunes: string | string[] = [],
+    @Query('codeDepartements') codeDepartements: string | string[] = [],
     @Query('sourceIds') sourceIds: string | string[] = [],
     @Query('types') types: AlertTypeEnum | AlertTypeEnum[] = [],
     @Query('status') status: AlertStatusEnum | AlertStatusEnum[] = [],
@@ -87,10 +95,12 @@ export class AlertController {
   ) {
     const filters = {};
 
-    if (codeCommunes.length > 0) {
-      filters['codeCommune'] = Array.isArray(codeCommunes)
-        ? In(codeCommunes)
-        : codeCommunes;
+    const codeCommuneFilter = buildCodeCommuneFilter(
+      Array.isArray(codeCommunes) ? codeCommunes : [codeCommunes],
+      Array.isArray(codeDepartements) ? codeDepartements : [codeDepartements],
+    );
+    if (codeCommuneFilter) {
+      filters['codeCommune'] = codeCommuneFilter;
     }
     if (sourceIds.length > 0) {
       filters['source'] = Array.isArray(sourceIds) ? In(sourceIds) : sourceIds;

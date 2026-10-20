@@ -299,6 +299,96 @@ describe('Alert module', () => {
       });
     });
 
+    it('should get alerts by department', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      await createRecording(
+        alertRepository,
+        createAlertEntity(source, {
+          codeCommune: '75056',
+          comment: 'Alert département 75',
+        }),
+      );
+
+      const alert2 = await createRecording(
+        alertRepository,
+        createAlertEntity(source, {
+          codeCommune: '37001',
+          comment: 'Alert département 37 - 1',
+        }),
+      );
+
+      const alert3 = await createRecording(
+        alertRepository,
+        createAlertEntity(source, {
+          codeCommune: '37003',
+          comment: 'Alert département 37 - 2',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/alerts?codeDepartements=37')
+        .expect(200);
+
+      const data = [alert3, alert2].map((alert) =>
+        getSerializedAlert(alert, source),
+      );
+
+      expect(response.body).toEqual({
+        data,
+        total: 2,
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    it('should get alerts by department (DOM)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      await createRecording(
+        alertRepository,
+        createAlertEntity(source, {
+          codeCommune: '97411',
+          comment: 'Alert département 974',
+        }),
+      );
+
+      const alert2 = await createRecording(
+        alertRepository,
+        createAlertEntity(source, {
+          codeCommune: '97101',
+          comment: 'Alert département 971',
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/alerts?codeDepartements=971')
+        .expect(200);
+
+      const data = [alert2].map((alert) => getSerializedAlert(alert, source));
+
+      expect(response.body).toEqual({
+        data,
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+    });
+
     it('should get alerts by source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: token1, ...source1 } = await createRecording(

@@ -500,6 +500,133 @@ describe('Signalement module', () => {
       });
     });
 
+    it('should get signalements by department', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const buildSignalement = (codeCommune: string): Signalement => {
+        const entity = new Signalement({
+          codeCommune,
+          type: SignalementTypeEnum.LOCATION_TO_DELETE,
+          existingLocation: {
+            type: ExistingLocationTypeEnum.NUMERO,
+            numero: 12,
+            suffixe: null,
+            position: {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+            toponyme: {
+              type: ExistingLocationTypeEnum.VOIE,
+              nom: 'Rue de la Paix',
+            },
+          },
+          changesRequested: {
+            comment: `à supprimer ${codeCommune}`,
+          },
+        });
+        entity.source = source;
+        return entity;
+      };
+
+      await createRecording(signalementRepository, buildSignalement('75056'));
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        buildSignalement('37001'),
+      );
+
+      const signalement3 = await createRecording(
+        signalementRepository,
+        buildSignalement('37003'),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/signalements?codeDepartements=37')
+        .expect(200);
+
+      const data = [signalement3, signalement2].map((signalement) =>
+        getSerializedSignalement(signalement, source),
+      );
+
+      expect(response.body).toEqual({
+        data,
+        total: 2,
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    it('should get signalements by department (DOM)', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, defaultAuthor, ...source } = await createRecording(
+        sourceRepository,
+        new Source({
+          nom: 'SIG Ville',
+          type: SourceTypeEnum.PRIVATE,
+        }),
+      );
+
+      const buildSignalement = (codeCommune: string): Signalement => {
+        const entity = new Signalement({
+          codeCommune,
+          type: SignalementTypeEnum.LOCATION_TO_DELETE,
+          existingLocation: {
+            type: ExistingLocationTypeEnum.NUMERO,
+            numero: 12,
+            suffixe: null,
+            position: {
+              type: PositionTypeEnum.BATIMENT,
+              point: {
+                type: 'Point',
+                coordinates: [0.982904, 47.410998],
+              },
+            },
+            toponyme: {
+              type: ExistingLocationTypeEnum.VOIE,
+              nom: 'Rue de la Paix',
+            },
+          },
+          changesRequested: {
+            comment: `à supprimer ${codeCommune}`,
+          },
+        });
+        entity.source = source;
+        return entity;
+      };
+
+      await createRecording(signalementRepository, buildSignalement('97411'));
+
+      const signalement2 = await createRecording(
+        signalementRepository,
+        buildSignalement('97101'),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/signalements?codeDepartements=971')
+        .expect(200);
+
+      const data = [signalement2].map((signalement) =>
+        getSerializedSignalement(signalement, source),
+      );
+
+      expect(response.body).toEqual({
+        data,
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+    });
+
     it('should get signalements by source', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { token: token1, ...source1 } = await createRecording(

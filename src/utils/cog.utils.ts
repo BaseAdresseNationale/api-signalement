@@ -1,4 +1,5 @@
 import { keyBy, groupBy } from 'lodash';
+import { FindOperator, Raw } from 'typeorm';
 import * as communes from '@etalab/decoupage-administratif/data/communes.json';
 import * as departements from '@etalab/decoupage-administratif/data/departements.json';
 
@@ -42,4 +43,37 @@ export function getCodesCommunes() {
 
 export function getDepartement(codeDepartement: string) {
   return departementsIndex[codeDepartement];
+}
+
+// Construit le filtre TypeORM sur la colonne `codeCommune` à partir d'une liste
+// de codes communes et/ou de codes départements. Un code département match tous
+// les codes communes qui commencent par ce code (2 caractères en métropole, 3
+// pour les DOM). Retourne `undefined` si aucun critère n'est fourni.
+export function buildCodeCommuneFilter(
+  codeCommunes: string[],
+  codeDepartements: string[],
+): FindOperator<string> | undefined {
+  const dep2 = codeDepartements.filter((dep) => dep.length === 2);
+  const dep3 = codeDepartements.filter((dep) => dep.length === 3);
+
+  if (codeCommunes.length === 0 && dep2.length === 0 && dep3.length === 0) {
+    return undefined;
+  }
+
+  return Raw(
+    (alias) => {
+      const conditions: string[] = [];
+      if (codeCommunes.length > 0) {
+        conditions.push(`${alias} IN (:...codeCommunes)`);
+      }
+      if (dep2.length > 0) {
+        conditions.push(`LEFT(${alias}, 2) IN (:...dep2)`);
+      }
+      if (dep3.length > 0) {
+        conditions.push(`LEFT(${alias}, 3) IN (:...dep3)`);
+      }
+      return conditions.join(' OR ');
+    },
+    { codeCommunes, dep2, dep3 },
+  );
 }
