@@ -296,6 +296,45 @@ describe('Report module', () => {
       ).toBe(true);
     });
 
+    it('should filter by codeDepartements', async () => {
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({ nom: 'Source test', type: SourceTypeEnum.PRIVATE }),
+      );
+
+      await createAlert(source, { codeCommune: '75056' });
+      await createAlert(source, { codeCommune: '37003' });
+      await createSignalement(source, { codeCommune: '37001' });
+
+      const response = await request(app.getHttpServer())
+        .get('/reports?codeDepartements=37')
+        .expect(200);
+
+      expect(response.body.total).toBe(2);
+      expect(
+        response.body.data.every((r: any) => r.codeCommune.startsWith('37')),
+      ).toBe(true);
+    });
+
+    it('should filter by codeDepartements for DOM (3 chars)', async () => {
+      const { token, ...source } = await createRecording(
+        sourceRepository,
+        new Source({ nom: 'Source test', type: SourceTypeEnum.PRIVATE }),
+      );
+
+      await createAlert(source, { codeCommune: '97411' });
+      await createSignalement(source, { codeCommune: '97101' });
+
+      const response = await request(app.getHttpServer())
+        .get('/reports?codeDepartements=971')
+        .expect(200);
+
+      expect(response.body.total).toBe(1);
+      expect(
+        response.body.data.every((r: any) => r.codeCommune.startsWith('971')),
+      ).toBe(true);
+    });
+
     it('should paginate results', async () => {
       const { token, ...source } = await createRecording(
         sourceRepository,

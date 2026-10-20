@@ -6,6 +6,7 @@ import { ReportService } from './report.service';
 import { ReportTypeEnum } from './report.type';
 import { ReportStatusEnum } from '../../common/report-status.enum';
 import { PaginatedReportsDTO } from './report.dto';
+import { buildCodeCommuneFilter } from '../../utils/cog.utils';
 
 @Controller('reports')
 @ApiTags('reports')
@@ -19,6 +20,12 @@ export class ReportController {
   })
   @ApiQuery({
     name: 'codeCommunes',
+    required: false,
+    type: String,
+    isArray: true,
+  })
+  @ApiQuery({
+    name: 'codeDepartements',
     required: false,
     type: String,
     isArray: true,
@@ -51,6 +58,7 @@ export class ReportController {
   async getReports(
     @Res() res: Response,
     @Query('codeCommunes') codeCommunes: string | string[] = [],
+    @Query('codeDepartements') codeDepartements: string | string[] = [],
     @Query('sourceIds') sourceIds: string | string[] = [],
     @Query('status') status: ReportStatusEnum | ReportStatusEnum[] = [],
     @Query('types') types: ReportTypeEnum | ReportTypeEnum[] = [],
@@ -59,10 +67,12 @@ export class ReportController {
   ) {
     const filters: Record<string, any> = {};
 
-    if (codeCommunes.length > 0) {
-      filters.codeCommune = Array.isArray(codeCommunes)
-        ? In(codeCommunes)
-        : codeCommunes;
+    const codeCommuneFilter = buildCodeCommuneFilter(
+      Array.isArray(codeCommunes) ? codeCommunes : [codeCommunes],
+      Array.isArray(codeDepartements) ? codeDepartements : [codeDepartements],
+    );
+    if (codeCommuneFilter) {
+      filters.codeCommune = codeCommuneFilter;
     }
     if (sourceIds.length > 0) {
       filters.source = Array.isArray(sourceIds) ? In(sourceIds) : sourceIds;
