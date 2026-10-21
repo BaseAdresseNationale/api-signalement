@@ -97,14 +97,11 @@ export class SignalementController {
     @Query('limit') limit = 20,
   ) {
     const filters = {};
-    console.log('codeDepartements:', codeDepartements);
-    console.log('codeCommunes:', codeCommunes);
 
     const codeCommuneFilter = buildCodeCommuneFilter(
       Array.isArray(codeCommunes) ? codeCommunes : [codeCommunes],
       Array.isArray(codeDepartements) ? codeDepartements : [codeDepartements],
     );
-    console.log('codeCommuneFilter:', codeCommuneFilter);
     if (codeCommuneFilter) {
       filters['codeCommune'] = codeCommuneFilter;
     }
