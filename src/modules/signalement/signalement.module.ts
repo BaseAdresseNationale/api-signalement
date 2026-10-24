@@ -15,6 +15,7 @@ import { Signalement } from './signalement.entity';
 import { SettingModule } from '../setting/setting.module';
 import { ReportModule } from '../report/report.module';
 import { BalAdminModule } from '../bal-admin/bal-admin.module';
+import { ApiDepotModule } from '../api-depot/api-depot.module';
 import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guard';
 
 @Module({
@@ -25,6 +26,7 @@ import { PartenairePerimeterGuard } from '../../common/partenaire-perimeter.guar
     forwardRef(() => SettingModule),
     ReportModule,
     BalAdminModule,
+    forwardRef(() => ApiDepotModule),
   ],
   controllers: [SignalementController],
   providers: [SignalementService, PartenairePerimeterGuard],

@@ -4,12 +4,13 @@ import { Revision } from '../api-depot/api-depot.types';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './setting.entity';
 import { ApiDepotService } from '../api-depot/api-depot.service';
-import { EnabledListKeys, SignalementSubmissionMode } from './setting.type';
+import { SignalementSubmissionMode } from './setting.type';
 import { CommuneSettingsDTO } from './dto/commune-settings.dto';
 import { CommuneStatusDTO } from './dto/commune-status.dto';
 import { SourceService } from '../source/source.service';
-import { EnabledListDTO } from './dto/enabled-list.dto';
 import { CommuneSettingsCacheService } from './commune-settings-cache.service';
+import { ClientService } from '../client/client.service';
+import { ClientPublicationType } from '../client/client.types';
 
 const ObjectIdRE = new RegExp('^[0-9a-fA-F]{24}$');
 
@@ -21,6 +22,7 @@ export class SettingService {
     private readonly apiDepotService: ApiDepotService,
     private readonly sourceService: SourceService,
     private readonly communeSettingsCacheService: CommuneSettingsCacheService,
+    private readonly clientService: ClientService,
   ) {}
 
   getCommuneSettingsKey(codeCommune: string): string {
@@ -98,29 +100,19 @@ export class SettingService {
     // Check source id
     await this.sourceService.findOneOrFail(sourceId);
 
-    const [
-      setting,
-      currentRevision,
-      moissonneurWhitelist,
-      apiDepotClientWhitelist,
-    ] = await Promise.all([
+    const [setting, currentRevision, publicationIdsByType] = await Promise.all([
       this.settingsRepository.findOne({
         where: { name: this.getCommuneSettingsKey(codeCommune) },
       }),
       this.apiDepotService.getCurrentRevision(codeCommune),
-      this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
-      }),
-      this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
-      }),
+      this.clientService.getPublicationIdsByType(),
     ]);
 
     const communeSettings = (setting?.content as CommuneSettingsDTO) || null;
     const moissonneurWhitelistContent =
-      (moissonneurWhitelist?.content as string[]) || [];
+      publicationIdsByType[ClientPublicationType.MOISSONNEUR];
     const apiDepotClientWhitelistContent =
-      (apiDepotClientWhitelist?.content as string[]) || [];
+      publicationIdsByType[ClientPublicationType.API_DEPOT];
 
     const status = this.determineCommuneStatus(
       communeSettings,
@@ -208,51 +200,6 @@ export class SettingService {
     return setting.content as CommuneSettingsDTO;
   }
 
-  async isInEnabledList(key: EnabledListKeys, id: string): Promise<boolean> {
-    const setting = await this.settingsRepository.findOne({
-      where: { name: key },
-    });
-
-    if (!setting) {
-      throw new NotFoundException(`Setting ${key} not found`);
-    }
-
-    const enabledList = setting.content as string[];
-
-    return enabledList.includes(id);
-  }
-
-  async updateEnabledList(
-    key: EnabledListKeys,
-    enabledListDTO: EnabledListDTO,
-  ): Promise<string[]> {
-    const { id } = enabledListDTO;
-    const setting = await this.settingsRepository.findOne({
-      where: { name: key },
-    });
-
-    if (!setting) {
-      throw new NotFoundException(`Setting ${key} not found`);
-    }
-
-    const enabledList = setting.content as string[];
-    let updatedEnabledList: string[] = [];
-
-    if (!enabledList.includes(id)) {
-      updatedEnabledList = [...enabledList, id];
-      setting.content = updatedEnabledList;
-      await this.settingsRepository.save(setting);
-    } else {
-      updatedEnabledList = enabledList.filter((_id) => _id !== id);
-      setting.content = updatedEnabledList;
-      await this.settingsRepository.save(setting);
-    }
-
-    this.communeSettingsCacheService.refreshCache();
-
-    return updatedEnabledList;
-  }
-
   async computeAllCommuneStatuses(): Promise<
     Map<
       string,
@@ -263,23 +210,14 @@ export class SettingService {
       }
     >
   > {
-    const [
-      allRevisions,
-      communeSettingsList,
-      moissonneurWhitelist,
-      apiDepotClientWhitelist,
-    ] = await Promise.all([
-      this.apiDepotService.getAllCurrentRevisions(),
-      this.settingsRepository.find({
-        where: { name: Like('%-settings') },
-      }),
-      this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.SOURCES_MOISSONNEUR_ENABLED },
-      }),
-      this.settingsRepository.findOne({
-        where: { name: EnabledListKeys.API_DEPOT_CLIENTS_ENABLED },
-      }),
-    ]);
+    const [allRevisions, communeSettingsList, publicationIdsByType] =
+      await Promise.all([
+        this.apiDepotService.getAllCurrentRevisions(),
+        this.settingsRepository.find({
+          where: { name: Like('%-settings') },
+        }),
+        this.clientService.getPublicationIdsByType(),
+      ]);
 
     const communeSettingsMap = new Map<string, CommuneSettingsDTO>();
     for (const setting of communeSettingsList) {
@@ -291,9 +229,9 @@ export class SettingService {
     }
 
     const moissonneurWhitelistContent =
-      (moissonneurWhitelist?.content as string[]) || [];
+      publicationIdsByType[ClientPublicationType.MOISSONNEUR];
     const apiDepotClientWhitelistContent =
-      (apiDepotClientWhitelist?.content as string[]) || [];
+      publicationIdsByType[ClientPublicationType.API_DEPOT];
 
     const result = new Map<
       string,

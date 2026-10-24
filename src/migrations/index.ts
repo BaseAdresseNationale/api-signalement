@@ -8,6 +8,7 @@ import { SingleTableInheritance1773308681996 } from './1773308681996-single-tabl
 import { AddSourceSiret1774447851299 } from './1774447851299-add-source-siret';
 import { AddSourceDefaultAuthor1781234567890 } from './1781234567890-add-source-default-author';
 import { AddClientPartenaireId1781234567900 } from './1781234567900-add-client-partenaire-id';
+import { AddClientPublicationInfo1781234567910 } from './1781234567910-add-client-publication-info';
 
 export const migrations = [
   PostGisAddSignalementPoint1741898533813,
@@ -20,4 +21,5 @@ export const migrations = [
   AddSourceSiret1774447851299,
   AddSourceDefaultAuthor1781234567890,
   AddClientPartenaireId1781234567900,
+  AddClientPublicationInfo1781234567910,
 ];

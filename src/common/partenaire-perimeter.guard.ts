@@ -7,8 +7,11 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Client } from '../modules/client/client.entity';
+import { ClientPublicationType } from '../modules/client/client.types';
 import { ReportService } from '../modules/report/report.service';
 import { BalAdminService } from '../modules/bal-admin/bal-admin.service';
+import { ApiDepotService } from '../modules/api-depot/api-depot.service';
+import { Revision } from '../modules/api-depot/api-depot.types';
 
 // Scope les tokens partenaire à leur périmètre géographique : si le client
 // authentifié porte un `partenaireId`, il ne peut consulter/traiter que les
@@ -20,13 +23,15 @@ export class PartenairePerimeterGuard implements CanActivate {
   constructor(
     private readonly reportService: ReportService,
     private readonly balAdminService: BalAdminService,
+    private readonly apiDepotService: ApiDepotService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req: Request & { registeredClient?: Client } =
       context.getArgByIndex(0);
 
-    const partenaireId = req.registeredClient?.partenaireId;
+    const client = req.registeredClient;
+    const partenaireId = client?.partenaireId;
     // Pas de périmètre défini : accès inchangé.
     if (!partenaireId) {
       return true;
@@ -57,6 +62,36 @@ export class PartenairePerimeterGuard implements CanActivate {
       );
     }
 
+    const revision = await this.apiDepotService.getCurrentRevision(codeCommune);
+
+    if (!this.isCurrentPublisher(revision, client)) {
+      throw new ForbiddenException(
+        'You are not the current publisher of this commune addresses',
+      );
+    }
+
     return true;
+  }
+
+  // Fail closed : le partenaire doit être le publicateur en cours (API dépôt ou
+  // moissonneur) des adresses de la commune pour pouvoir traiter le signalement.
+  private isCurrentPublisher(
+    revision: Revision | null,
+    client?: Client,
+  ): boolean {
+    const { publicationType, publicationId } = client ?? {};
+    if (!revision || !publicationType || !publicationId) {
+      return false;
+    }
+
+    if (publicationType === ClientPublicationType.API_DEPOT) {
+      return revision.client?.id === publicationId;
+    }
+
+    if (publicationType === ClientPublicationType.MOISSONNEUR) {
+      return revision.context?.extras?.sourceId === publicationId;
+    }
+
+    return false;
   }
 }
