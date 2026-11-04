@@ -64,6 +64,7 @@ export abstract class BaseReportService<T extends Report> {
       date: new Date(entity.createdAt).toLocaleDateString('fr-FR'),
       commune: entity.nomCommune,
       rejectionReason: entity.rejectionReason,
+      reportUrl: `${process.env.MES_SIGNALEMENTS_URL}/#/report/${entity.id}`,
     };
   }
 
