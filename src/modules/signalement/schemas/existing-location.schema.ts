@@ -71,6 +71,12 @@ export class ExistingNumero extends ExistingLocation {
   @Type(() => Position)
   position: Position;
 
+  @ApiProperty({ required: false, nullable: true, type: [Position] })
+  @IsArray()
+  @IsOptional()
+  @Type(() => Position)
+  additionalPositions?: Position[];
+
   @ApiProperty({ required: false, nullable: true })
   @IsArray()
   @IsOptional()
